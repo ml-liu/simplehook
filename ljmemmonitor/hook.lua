@@ -5,7 +5,7 @@ print("hook init 1111");
 
 if(get_so_load_base)
 then
-local a = get_so_load_base("/home/jx3/server/bin64/x.so")
+local a = get_so_load_base("/home/test/server/bin64/x.so")
 print(a)
 local addr = a + 0x5f790 
 
