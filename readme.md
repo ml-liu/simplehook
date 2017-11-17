@@ -1,5 +1,5 @@
 # simplehook
-hook tool
+hook tool, used by myself..
 
 # compile
 ```cpp
