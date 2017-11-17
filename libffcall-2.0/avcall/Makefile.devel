@@ -1,0 +1,251 @@
+# This is the developer's -*-Makefile-*-, not the user's makefile.
+# Do not use it unless you know exactly what you do!
+
+THISFILE = Makefile.devel
+LN = ln -s
+RM = rm -f
+
+# ============ Rules that require cross-compilation tools ============
+
+GCC = gcc
+GCCFLAGS = -I.. -I../dummy -O2 -fno-omit-frame-pointer -fPIC
+SED = sed
+CROSS_TOOL = cross
+
+precompiled : \
+  avcall-i386-macro.S \
+  avcall-m68k.mit.S avcall-m68k.motorola.S \
+  avcall-mipseb-macro.S avcall-mipsel-macro.S avcall-mipsn32eb-macro.S avcall-mipsn32el-macro.S avcall-mips64eb-macro.S avcall-mips64el-macro.S \
+  avcall-sparc-macro.S avcall-sparc64-macro.S \
+  avcall-alpha-macro.S \
+  avcall-hppa-macro.S avcall-hppa64-macro.S \
+  avcall-arm-macro.S avcall-armhf-macro.S \
+  avcall-arm64-macro.S \
+  avcall-powerpc-aix.s avcall-powerpc-linux-macro.S avcall-powerpc-sysv4-macro.S avcall-powerpc-macos.s avcall-powerpc64-aix.s avcall-powerpc64-linux.S avcall-powerpc64-elfv2-linux.S \
+  avcall-ia64-macro.S \
+  avcall-x86_64-macro.S avcall-x86_64-x32-linux.s avcall-x86_64-windows-macro.S \
+  avcall-s390-macro.S avcall-s390x-macro.S
+
+
+avcall-i386-linux.s : avcall-i386.c avcall-internal.h avcall.h avcall-alist.h $(THISFILE)
+	$(CROSS_TOOL) i386-linux gcc -V 3.1 $(GCCFLAGS) -D__i386__ -fno-omit-frame-pointer -S avcall-i386.c -o avcall-i386-linux.s
+
+avcall-i386-macro.S : avcall-i386-linux.s ../common/asm-i386.sh ../common/noexecstack.h $(THISFILE)
+	(echo '#include "asm-i386.h"' ; sed -e '/\.align.*,0x90$$/d' < avcall-i386-linux.s | ../common/asm-i386.sh ; cat ../common/noexecstack.h) > avcall-i386-macro.S
+
+
+avcall-m68k-linux.s : avcall-m68k.c avcall-internal.h avcall.h avcall-alist.h $(THISFILE)
+	$(CROSS_TOOL) m68k-linux gcc -V 3.1 $(GCCFLAGS) -D__m68k__ -S avcall-m68k.c -o avcall-m68k-linux.s
+
+avcall-m68k-sun.s : avcall-m68k.c avcall-internal.h avcall.h avcall-alist.h $(THISFILE)
+	$(CROSS_TOOL) m68k-sun gcc -V 3.1 $(GCCFLAGS) -D__m68k__ -S avcall-m68k.c -o avcall-m68k-sun.s
+
+avcall-m68k.mit.S : avcall-m68k-sun.s ../common/asm-m68k.sh ../common/noexecstack.h $(THISFILE)
+	(echo '#include "asm-m68k.h"' ; ../common/asm-m68k.sh mit < avcall-m68k-sun.s ; cat ../common/noexecstack.h) > avcall-m68k.mit.S
+
+avcall-m68k.motorola.S : avcall-m68k-linux.s ../common/asm-m68k.sh ../common/noexecstack.h $(THISFILE)
+	(echo '#include "asm-m68k.h"' ; ../common/asm-m68k.sh motorola < avcall-m68k-linux.s ; cat ../common/noexecstack.h) > avcall-m68k.motorola.S
+
+
+avcall-mipseb-linux.s : avcall-mips.c avcall-internal.h avcall.h avcall-alist.h $(THISFILE)
+	$(CROSS_TOOL) mips64-linux gcc -V 4.0.2 -mabi=32 -meb $(GCCFLAGS) -D__mips__ -S avcall-mips.c -o avcall-mipseb-linux.s
+
+avcall-mipseb-macro.S : avcall-mipseb-linux.s ../common/asm-mips.sh $(THISFILE)
+	(echo '#include "asm-mips.h"' ; ../common/asm-mips.sh < avcall-mipseb-linux.s) > avcall-mipseb-macro.S
+
+avcall-mipsel-linux.s : avcall-mips.c avcall-internal.h avcall.h avcall-alist.h $(THISFILE)
+	$(CROSS_TOOL) mips64-linux gcc -V 4.0.2 -mabi=32 -mel $(GCCFLAGS) -D__mips__ -S avcall-mips.c -o avcall-mipsel-linux.s
+
+avcall-mipsel-macro.S : avcall-mipsel-linux.s ../common/asm-mips.sh $(THISFILE)
+	(echo '#include "asm-mips.h"' ; ../common/asm-mips.sh < avcall-mipsel-linux.s) > avcall-mipsel-macro.S
+
+avcall-mipsn32eb-linux.s : avcall-mipsn32.c avcall-internal.h avcall.h avcall-alist.h $(THISFILE)
+	$(CROSS_TOOL) mips64-linux gcc -V 4.0.2 -mabi=n32 -meb $(GCCFLAGS) -D__mipsn32__ -S avcall-mipsn32.c -o avcall-mipsn32eb-linux.s
+
+avcall-mipsn32eb-macro.S : avcall-mipsn32eb-linux.s ../common/asm-mips.sh $(THISFILE)
+	(echo '#include "asm-mips.h"' ; ../common/asm-mips.sh < avcall-mipsn32eb-linux.s) > avcall-mipsn32eb-macro.S
+
+avcall-mipsn32el-linux.s : avcall-mipsn32.c avcall-internal.h avcall.h avcall-alist.h $(THISFILE)
+	$(CROSS_TOOL) mips64-linux gcc -V 4.0.2 -mabi=n32 -mel $(GCCFLAGS) -D__mipsn32__ -S avcall-mipsn32.c -o avcall-mipsn32el-linux.s
+
+avcall-mipsn32el-macro.S : avcall-mipsn32el-linux.s ../common/asm-mips.sh $(THISFILE)
+	(echo '#include "asm-mips.h"' ; ../common/asm-mips.sh < avcall-mipsn32el-linux.s) > avcall-mipsn32el-macro.S
+
+avcall-mips64eb-linux.s : avcall-mips64.c avcall-internal.h avcall.h avcall-alist.h $(THISFILE)
+	$(CROSS_TOOL) mips64-linux gcc -V 4.0.2 -mabi=64 -meb $(GCCFLAGS) -D__mips64__ -S avcall-mips64.c -o avcall-mips64eb-linux.s
+
+avcall-mips64eb-macro.S : avcall-mips64eb-linux.s ../common/asm-mips.sh $(THISFILE)
+	(echo '#include "asm-mips.h"' ; ../common/asm-mips.sh < avcall-mips64eb-linux.s) > avcall-mips64eb-macro.S
+
+avcall-mips64el-linux.s : avcall-mips64.c avcall-internal.h avcall.h avcall-alist.h $(THISFILE)
+	$(CROSS_TOOL) mips64-linux gcc -V 4.0.2 -mabi=64 -mel $(GCCFLAGS) -D__mips64__ -S avcall-mips64.c -o avcall-mips64el-linux.s
+
+avcall-mips64el-macro.S : avcall-mips64el-linux.s ../common/asm-mips.sh $(THISFILE)
+	(echo '#include "asm-mips.h"' ; ../common/asm-mips.sh < avcall-mips64el-linux.s) > avcall-mips64el-macro.S
+
+
+avcall-sparc-linux.s : avcall-sparc.c avcall-internal.h avcall.h avcall-alist.h $(THISFILE)
+	$(CROSS_TOOL) sparc-linux gcc -V 3.1 $(GCCFLAGS) -D__sparc__ -S avcall-sparc.c -o avcall-sparc-linux.s
+
+avcall-sparc-macro.S : avcall-sparc-linux.s ../common/asm-sparc.sh ../common/noexecstack.h $(THISFILE)
+	(echo '#include "asm-sparc.h"' ; ../common/asm-sparc.sh < avcall-sparc-linux.s ; cat ../common/noexecstack.h) > avcall-sparc-macro.S
+
+avcall-sparc64-linux.s : avcall-sparc64.c avcall-internal.h avcall.h avcall-alist.h $(THISFILE)
+# This compiler produces useless instructions with -fPIC. The result is PIC even without -fPIC.
+	$(CROSS_TOOL) sparc64-linux gcc -V 4.0.2 $(GCCFLAGS) -fno-PIC -D__sparc64__ -S avcall-sparc64.c -o avcall-sparc64-linux.s
+
+avcall-sparc64-macro.S : avcall-sparc64-linux.s ../common/asm-sparc.sh ../common/noexecstack.h $(THISFILE)
+	(echo '#include "asm-sparc.h"' ; ../common/asm-sparc.sh < avcall-sparc64-linux.s ; cat ../common/noexecstack.h) > avcall-sparc64-macro.S
+
+
+avcall-alpha-linux.s : avcall-alpha.c avcall-internal.h avcall.h avcall-alist.h $(THISFILE)
+	$(CROSS_TOOL) alpha-linux gcc -V 4.0.2 $(GCCFLAGS) -D__alpha__ -S avcall-alpha.c -o avcall-alpha-linux.s
+
+avcall-alpha-macro.S : avcall-alpha-linux.s ../common/asm-alpha.sh ../common/noexecstack.h $(THISFILE)
+	(../common/asm-alpha.sh < avcall-alpha-linux.s ; cat ../common/noexecstack.h) > avcall-alpha-macro.S
+
+
+avcall-hppa-linux.s : avcall-hppa.c avcall-internal.h avcall.h avcall-alist.h $(THISFILE)
+	$(CROSS_TOOL) hppa-linux gcc -V 3.1 $(GCCFLAGS) -D__hppa__ -S avcall-hppa.c -o avcall-hppa-linux.s
+
+avcall-hppa-macro.S : avcall-hppa-linux.s ../common/asm-hppa.sh ../common/noexecstack.h $(THISFILE)
+	(echo '#include "asm-hppa.h"' ; ../common/asm-hppa.sh < avcall-hppa-linux.s ; cat ../common/noexecstack.h) > avcall-hppa-macro.S
+
+avcall-hppa64-linux.s : avcall-hppa64.c avcall-internal.h avcall.h avcall-alist.h $(THISFILE)
+	$(CROSS_TOOL) hppa64-linux gcc -V 3.1 $(GCCFLAGS) -D__hppa64__ -S avcall-hppa64.c -o avcall-hppa64-linux.s
+
+avcall-hppa64-macro.S : avcall-hppa64-linux.s ../common/asm-hppa64.sh ../common/noexecstack.h $(THISFILE)
+# Need to remove the gcc-generated instructions that clobber %r29 right before each of the calls.
+	(echo '#include "asm-hppa64.h"' ; grep -v 'ldo -16(%r30),%r29' < avcall-hppa64-linux.s | ../common/asm-hppa64.sh ; cat ../common/noexecstack.h) > avcall-hppa64-macro.S
+
+
+avcall-arm-macro.S : avcall-arm.c avcall-internal.h avcall.h avcall-alist.h ../common/asm-arm.sh ../common/noexecstack-arm.h $(THISFILE)
+	$(CROSS_TOOL) arm-linux gcc -V 3.1 -mlittle-endian $(GCCFLAGS) -D__arm__ -S avcall-arm.c -o avcall-armel.s
+	$(CROSS_TOOL) arm-linux gcc -V 3.1 -mbig-endian $(GCCFLAGS) -D__arm__ -S avcall-arm.c -o avcall-armeb.s
+	cmp avcall-armel.s avcall-armeb.s > /dev/null
+	(echo '#include "asm-arm.h"' ; ../common/asm-arm.sh < avcall-armel.s ; cat ../common/noexecstack-arm.h) > avcall-arm-macro.S
+	$(RM) avcall-armel.s avcall-armeb.s
+
+avcall-armhf-macro.S : avcall-armhf.c avcall-internal.h avcall.h avcall-alist.h ../common/asm-arm.sh ../common/noexecstack-arm.h $(THISFILE)
+# The option -mabi=aapcs ensures an 8-bytes-aligned stack pointer.
+	$(CROSS_TOOL) armv7l-linux-gnueabihf gcc-6.3.0 -mabi=aapcs -mfloat-abi=hard -mlittle-endian $(GCCFLAGS) -D__armhf__ -S avcall-armhf.c -o avcall-armhfel.s
+	$(CROSS_TOOL) armv7l-linux-gnueabihf gcc-6.3.0 -mabi=aapcs -mfloat-abi=hard -mbig-endian $(GCCFLAGS) -D__armhf__ -S avcall-armhf.c -o avcall-armhfeb.s
+	cmp avcall-armhfel.s avcall-armhfeb.s > /dev/null
+	(echo '#include "asm-arm.h"' ; ../common/asm-arm.sh < avcall-armhfel.s ; cat ../common/noexecstack-arm.h) > avcall-armhf-macro.S
+	$(RM) avcall-armhfel.s avcall-armhfeb.s
+
+
+avcall-arm64-macro.S : avcall-arm64.c avcall-internal.h avcall.h avcall-alist.h ../common/asm-arm.sh ../common/noexecstack-arm.h $(THISFILE)
+	$(CROSS_TOOL) aarch64-linux gcc-5.4.0 -mlittle-endian $(GCCFLAGS) -D__arm64__ -S avcall-arm64.c -o avcall-arm64el.s
+	$(CROSS_TOOL) aarch64-linux gcc-5.4.0 -mbig-endian $(GCCFLAGS) -D__arm64__ -S avcall-arm64.c -o avcall-arm64eb.s
+	cmp avcall-arm64el.s avcall-arm64eb.s > /dev/null
+	(echo '#include "asm-arm.h"' ; ../common/asm-arm.sh < avcall-arm64el.s ; cat ../common/noexecstack-arm.h) > avcall-arm64-macro.S
+	$(RM) avcall-arm64el.s avcall-arm64eb.s
+
+
+avcall-powerpc-aix.s : avcall-powerpc.c avcall-internal.h avcall.h avcall-alist.h $(THISFILE)
+	$(CROSS_TOOL) rs6000-aix gcc -V 3.3.6 -mno-power -mno-power2 -mno-powerpc -mnew-mnemonics $(GCCFLAGS) -D__powerpc__ -S avcall-powerpc.c -o avcall-powerpc-aix.s
+
+avcall-powerpc-linux.s : avcall-powerpc.c avcall-internal.h avcall.h avcall-alist.h $(THISFILE)
+	$(CROSS_TOOL) powerpc-linux gcc -V 3.3.6 -mno-power -mno-power2 -mno-powerpc $(GCCFLAGS) -D__powerpc__ -S avcall-powerpc.c -o avcall-powerpc-linux.s
+
+avcall-powerpc-linux-macro.S : avcall-powerpc-linux.s ../common/asm-powerpc.sh ../common/noexecstack.h $(THISFILE)
+	(../common/asm-powerpc.sh < avcall-powerpc-linux.s ; cat ../common/noexecstack.h) > avcall-powerpc-linux-macro.S
+
+avcall-powerpc-sysv4-macro.S : avcall-powerpc.c avcall-internal.h avcall.h avcall-alist.h ../common/asm-powerpc.sh ../common/noexecstack.h $(THISFILE)
+	$(CROSS_TOOL) powerpc-linux gcc -V 3.3.6 -mno-power -mno-power2 -mno-powerpc $(GCCFLAGS) -D__powerpc__ -S avcall-powerpc.c -o avcall-powerpc-sysv4.s
+	(../common/asm-powerpc.sh < avcall-powerpc-sysv4.s ; cat ../common/noexecstack.h) > avcall-powerpc-sysv4-macro.S
+	$(RM) avcall-powerpc-sysv4.s
+
+avcall-powerpc-macos.s : avcall-powerpc.c avcall-internal.h avcall.h avcall-alist.h $(THISFILE)
+	$(CROSS_TOOL) powerpc-darwin gcc -V 3.3.6 $(GCCFLAGS) -D__powerpc__ -S avcall-powerpc.c -o avcall-powerpc-macos.s
+
+avcall-powerpc64-aix.s : avcall-powerpc64.c avcall-internal.h avcall.h avcall-alist.h $(THISFILE)
+	$(CROSS_TOOL) rs6000-aix6.1 gcc-5.4.0 -maix64 $(GCCFLAGS) -D__powerpc64__ -S avcall-powerpc64.c -o avcall-powerpc64-aix.s
+
+avcall-powerpc64-linux.S : avcall-powerpc64.c avcall-internal.h avcall.h avcall-alist.h ../common/asm-powerpc.sh ../common/noexecstack.h $(THISFILE)
+	$(CROSS_TOOL) powerpc64le-linux gcc-5.4.0 -mabi=elfv1 -mcpu=power4 -mlittle-endian $(GCCFLAGS) -D__powerpc64__ -S avcall-powerpc64.c -o avcall-powerpc64-linux-le.s
+	$(CROSS_TOOL) powerpc64le-linux gcc-5.4.0 -mabi=elfv1 -mcpu=power4 -mbig-endian $(GCCFLAGS) -D__powerpc64__ -S avcall-powerpc64.c -o avcall-powerpc64-linux-be.s
+	cmp avcall-powerpc64-linux-le.s avcall-powerpc64-linux-be.s > /dev/null
+	(../common/asm-powerpc.sh < avcall-powerpc64-linux-be.s ; cat ../common/noexecstack.h) > avcall-powerpc64-linux.S
+	$(RM) avcall-powerpc64-linux-le.s avcall-powerpc64-linux-be.s
+
+avcall-powerpc64-elfv2-linux.S : avcall-powerpc64.c avcall-internal.h avcall.h avcall-alist.h ../common/asm-powerpc.sh ../common/noexecstack.h $(THISFILE)
+	$(CROSS_TOOL) powerpc64le-linux gcc-5.4.0 -mabi=elfv2 -mcpu=power4 -mlittle-endian $(GCCFLAGS) -D__powerpc64__ -D__powerpc64_elfv2__ -S avcall-powerpc64.c -o avcall-powerpc64-elfv2-linux-le.s
+	$(CROSS_TOOL) powerpc64le-linux gcc-5.4.0 -mabi=elfv2 -mcpu=power4 -mbig-endian $(GCCFLAGS) -D__powerpc64__ -D__powerpc64_elfv2__ -S avcall-powerpc64.c -o avcall-powerpc64-elfv2-linux-be.s
+	cmp avcall-powerpc64-elfv2-linux-le.s avcall-powerpc64-elfv2-linux-be.s > /dev/null
+	(../common/asm-powerpc.sh < avcall-powerpc64-elfv2-linux-be.s ; cat ../common/noexecstack.h) > avcall-powerpc64-elfv2-linux.S
+	$(RM) avcall-powerpc64-elfv2-linux-le.s avcall-powerpc64-elfv2-linux-be.s
+
+
+avcall-ia64-linux.s : avcall-ia64.c avcall-internal.h avcall.h avcall-alist.h $(THISFILE)
+	$(CROSS_TOOL) ia64-linux gcc -V 4.0.1 $(GCCFLAGS) -D__ia64__ -S avcall-ia64.c -o avcall-ia64-linux.s
+
+avcall-ia64-macro.S : avcall-ia64-linux.s ../common/noexecstack.h $(THISFILE)
+	cat avcall-ia64-linux.s ../common/noexecstack.h > avcall-ia64-macro.S
+
+
+avcall-x86_64-linux.s : avcall-x86_64.c avcall-internal.h avcall.h avcall-alist.h $(THISFILE)
+	$(CROSS_TOOL) x86_64-linux gcc-4.0.2 $(GCCFLAGS) -D__x86_64__ -S avcall-x86_64.c -o avcall-x86_64-linux.s
+
+avcall-x86_64-macro.S : avcall-x86_64-linux.s ../common/asm-x86_64.sh ../common/noexecstack.h $(THISFILE)
+	(echo '#include "asm-x86_64.h"' ; ../common/asm-x86_64.sh < avcall-x86_64-linux.s ; cat ../common/noexecstack.h) > avcall-x86_64-macro.S
+
+avcall-x86_64-x32-linux.s : avcall-x86_64.c avcall-internal.h avcall.h avcall-alist.h $(THISFILE)
+	$(CROSS_TOOL) x86_64-linux gcc-5.4.0 -mx32 $(GCCFLAGS) -D__x86_64__ -D__x86_64_x32__ -S avcall-x86_64.c -o avcall-x86_64-x32-linux.s
+
+avcall-x86_64-windows.s : avcall-x86_64-windows.c avcall-internal.h avcall.h avcall-alist.h $(THISFILE)
+	$(CROSS_TOOL) x86_64-linux gcc-5.4.0 -mabi=ms $(GCCFLAGS) -fno-reorder-blocks-and-partition -D__x86_64__ -D_WIN32 -S avcall-x86_64-windows.c -o avcall-x86_64-windows.s
+
+avcall-x86_64-windows-macro.S : avcall-x86_64-windows.s ../common/asm-x86_64.sh ../common/noexecstack.h $(THISFILE)
+	(echo '#include "asm-x86_64.h"' ; ../common/asm-x86_64.sh < avcall-x86_64-windows.s ; cat ../common/noexecstack.h) > avcall-x86_64-windows-macro.S
+
+
+avcall-s390-linux.s : avcall-s390.c avcall-internal.h avcall.h avcall-alist.h $(THISFILE)
+	$(CROSS_TOOL) s390-linux gcc -V 3.1 $(GCCFLAGS) -D__s390__ -S avcall-s390.c -o avcall-s390-linux.s
+
+avcall-s390-macro.S : avcall-s390-linux.s ../common/asm-s390.sh ../common/noexecstack.h $(THISFILE)
+	(../common/asm-s390.sh < avcall-s390-linux.s ; cat ../common/noexecstack.h) > avcall-s390-macro.S
+
+
+avcall-s390x-linux.s : avcall-s390x.c avcall-internal.h avcall.h avcall-alist.h $(THISFILE)
+	$(CROSS_TOOL) s390x-linux gcc-5.4.0 $(GCCFLAGS) -D__s390x__ -S avcall-s390x.c -o avcall-s390x-linux.s
+
+avcall-s390x-macro.S : avcall-s390x-linux.s ../common/asm-s390.sh ../common/noexecstack.h $(THISFILE)
+	(../common/asm-s390.sh < avcall-s390x-linux.s ; cat ../common/noexecstack.h) > avcall-s390x-macro.S
+
+
+# --------------- Rules for debugging test failures ---------------
+
+tests : tests-i386.s tests-m68k.s tests-mips.s tests-sparc.s tests-alpha.s tests-hppa.s tests-arm.s tests-powerpc.s tests-ia64.s tests-x86_64.s
+	true
+
+tests-i386.s : tests.c avcall.h
+	$(GCC) -V 2.7.2 -b i486-linuxaout $(GCCFLAGS) -I/usr/include -D__i386__ -S tests.c -o tests-i386.s
+
+tests-m68k.s : tests.c avcall.h
+	$(GCC) -V 2.95.2 -b m68k-sun $(GCCFLAGS) -I/usr/include -D__m68k__ -S tests.c -o tests-m68k.s
+
+tests-mips.s : tests.c avcall.h
+	$(GCC) -V 2.95.2 -b mips-sgi $(GCCFLAGS) -I/usr/include -D__mips__ -S tests.c -o tests-mips.s
+
+tests-sparc.s : tests.c avcall.h
+	$(GCC) -V 2.95.2 -b sparc-sun $(GCCFLAGS) -I/usr/include -D__sparc__ -S tests.c -o tests-sparc.s
+
+tests-alpha.s : tests.c avcall.h
+	$(GCC) -V 2.7.2 -b alpha-dec-osf $(GCCFLAGS) -I/usr/include -D__alpha__ -S tests.c -o tests-alpha.s
+
+tests-hppa.s : tests.c avcall.h
+	$(GCC) -V 2.6.3 -b hppa1.0-hpux $(GCCFLAGS) -I/usr/include -D__hppa__ -S tests.c -o tests-hppa.s
+
+tests-arm.s : tests.c avcall.h
+	$(GCC) -V 2.6.3 -b arm-acorn-riscix $(GCCFLAGS) -I/usr/include -D__arm__ -S tests.c -o tests-arm.s
+
+tests-powerpc.s : tests.c avcall.h
+	$(GCC) -V 2.95.2 -b rs6000 $(GCCFLAGS) -I/usr/include -D__powerpc__ -S tests.c -o tests-powerpc.s
+
+tests-ia64.s : tests.c avcall.h
+	$(GCC) -V 2.9-ia64-000216 -b ia64-hp-linux $(GCCFLAGS) -I/usr/include -D__ia64__ -S tests.c -o tests-ia64.s
+
+tests-x86_64.s : tests.c avcall.h
+	$(GCC) -V 3.2.2 -b x86_64-suse-linux $(GCCFLAGS) -I/usr/include -D__x86_64__ -S tests.c -o tests-x86_64.s

@@ -1,0 +1,78 @@
+vacall - C functions called with variable arguments
+
+This library allows C functions to be called with variable arguments and
+to return variable return values. This is much like the varargs(3) facility,
+but also allows the return value to be specified at run time.
+
+A typical use is the implementation of call-back functions in embedded
+interpreters.
+
+
+Installation instructions:
+
+    Configure the parent directory. Then:
+        cd vacall
+        make
+        make check
+        make install
+
+
+Files in this package:
+
+    Documentation:
+
+        README          this text
+        COPYING         free software license
+        PLATFORMS       list of supported platforms
+        vacall.3        manual page in Unix man format
+        vacall.man      manual page
+        vacall.html     manual page in HTML format
+
+    Source:
+
+        vacall.h        main include file
+        vacall-*.c      source for the main interface function
+        vacall-*.[sS]   its translation to assembly language
+        vacall-libapi.c     implementation of other library API
+        vacall-structcpy.c  auxiliary function
+        tests.c         test program
+
+    Building:
+
+        Makefile.in     Makefile master
+
+    Porting:
+
+        Makefile.devel  developer's Makefile
+
+
+This subdirectory produces a static library. Reason:
+The vacall-*.c files access global variables. Such accesses causes
+portability problems when combined with the option -fPIC (because of
+the small/medium/large memory models and platform dependent assembler
+syntax to access the GOT).
+Therefore Makefile.devel in this directory compiles the files without -fPIC.
+Therefore the resulting object files are not suitable for being put into
+a shared library.
+Therefore this direcory must
+  - either not use libtool,
+  - or pass '-static' to $(LIBTOOL_LINK) when creating libvacall.la.
+
+
+Copyright notice:
+
+Copyright 1995-2017 Bruno Haible <bruno@clisp.org>
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+

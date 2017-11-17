@@ -1,0 +1,164 @@
+CALLBACK(3)                Library Functions Manual                CALLBACK(3)
+
+
+
+[1mNAME[0m
+       callback - closures with variable arguments as first-class C functions
+
+[1mSYNOPSIS[0m
+       [1m#include <callback.h>[0m
+
+       [1mvoid [4m[22mfunction[24m [1m(void* [4m[22mdata[24m[1m, va_alist [4m[22malist[24m[1m)[0m
+       [1m{[0m
+         [1mva_start_[4m[22mtype[24m[1m([4m[22malist[24m[1m[, [4m[22mreturn_type[24m[1m]);[0m
+         [4marg[24m [1m= va_arg_[4m[22mtype[24m[1m([4m[22malist[24m[1m[, [4m[22marg_type[24m[1m]);[0m
+         [1mva_return_[4m[22mtype[24m[1m([4m[22malist[24m[1m[[, [4m[22mreturn_type[24m[1m], [4m[22mreturn_value[24m[1m]);[0m
+       [1m}[0m
+
+       [4mcallback[24m [1m= alloc_callback([4m[22m&function[24m[1m, [4m[22mdata[24m[1m);[0m
+
+       [1mfree_callback([4m[22mcallback[24m[1m);[0m
+
+       [1mis_callback([4m[22mcallback[24m[1m)[0m
+       [1mcallback_address([4m[22mcallback[24m[1m)[0m
+       [1mcallback_data([4m[22mcallback[24m[1m)[0m
+
+[1mDESCRIPTION[0m
+       These  functions  implement  [4mclosures[24m with variable arguments as first-
+       class C functions.
+
+       Closures as [4mfirst-class[24m [4mC[24m [4mfunctions[24m means that they fit into a function
+       pointer  and can be called exactly like any other C function. Moreover,
+       they can be called with variable  arguments  and  can  return  variable
+       return values.
+
+       [4mcallback[24m  [1m=  alloc_callback([4m[22m&function[24m[1m, [4m[22mdata[24m[1m) [22mallocates a callback. When
+       [4mcallback[24m gets called, it arranges to call  [4mfunction[24m,  passing  [4mdata[24m  as
+       first  argument  and,  as second argument, the entire sequence of argu‐
+       ments passed to [4mcallback[24m.
+
+       Function calling conventions differ considerably on different machines,
+       therefore  the  arguments  are  accessed and the result value is stored
+       through the same macros as used by the [4mvacall[24m package, see below.
+
+       The callbacks are functions with indefinite extent:  [4mcallback[24m  is  only
+       deallocated when [1mfree_callback([4m[22mcallback[24m[1m) [22mis called.
+
+       [1mis_callback([4m[22mcallback[24m[1m)  [22mchecks  whether the C function [4mcallback[24m was pro‐
+       duced by a call to [4malloc_callback[24m.  If this returns true, the arguments
+       given to [4malloc_callback[24m can be retrieved:
+
+           [1mcallback_address([4m[22mcallback[24m[1m) [22mreturns [4m&function[24m,
+
+           [1mcallback_data([4m[22mcallback[24m[1m) [22mreturns [4mdata[24m.
+
+
+[1mVACALL MACROS[0m
+       Within  [4mfunction[24m,  the following macros can be used to walk through the
+       argument list and specify a return value:
+
+       [1mva_start_[4m[22mtype[24m[1m([4m[22malist[24m[1m[, [4m[22mreturn_type[24m[1m]);[0m
+              starts the walk through the  argument  list  and  specifies  the
+              return type.
+
+       [4marg[24m [1m= va_arg_[4m[22mtype[24m[1m([4m[22malist[24m[1m[, [4m[22marg_type[24m[1m]);[0m
+              fetches the next argument from the argument list.
+
+       [1mva_return_[4m[22mtype[24m[1m([4m[22malist[24m[1m[[, [4m[22mreturn_type[24m[1m], [4m[22mreturn_value[24m[1m]);[0m
+              ends the walk through the argument list and specifies the return
+              value.
+
+       The [4mtype[24m in [1mva_start_[4m[22mtype[24m and [1mva_return_[4m[22mtype[24m shall be one of [1mvoid[22m, [1mint[22m,
+       [1muint[22m,  [1mlong[22m,  [1mulong[22m,  [1mlonglong[22m,  [1mulonglong[22m, [1mdouble[22m, [1mstruct[22m, [1mptr [22mor (for
+       ANSI C calling conventions only) [1mchar[22m,  [1mschar[22m,  [1muchar[22m,  [1mshort[22m,  [1mushort[22m,
+       [1mfloat[22m, depending on the class of [4mreturn_type[24m.
+
+       The  [4mtype[24m  specifiers  in  [1mva_start_[4m[22mtype[24m and [1mva_return_[4m[22mtype[24m must be the
+       same.   The  [4mreturn_type[24m  specifiers  passed   to   [1mva_start_[4m[22mtype[24m   and
+       [1mva_return_[4m[22mtype[24m must be the same.
+
+       The  [4mtype[24m  in [1mva_arg_[4m[22mtype[24m shall be one of [1mint[22m, [1muint[22m, [1mlong[22m, [1mulong[22m, [1mlong‐[0m
+       [1mlong[22m, [1mulonglong[22m, [1mdouble[22m, [1mstruct[22m, [1mptr [22mor (for ANSI C calling conventions
+       only)  [1mchar[22m, [1mschar[22m, [1muchar[22m, [1mshort[22m, [1mushort[22m, [1mfloat[22m, depending on the class
+       of [4marg_type[24m.
+
+       In [1mva_start_struct([4m[22malist[24m[1m, [4m[22mreturn_type[24m[1m, [4m[22msplittable[24m[1m); [22mthe [4msplittable[24m flag
+       specifies  whether  the struct [4mreturn_type[24m can be returned in registers
+       such that every struct field fits entirely in a single  register.  This
+       needs  to  be specified for structs of size 2*sizeof(long). For structs
+       of size <= sizeof(long), [4msplittable[24m is ignored and assumed to be 1. For
+       structs  of size > 2*sizeof(long), [4msplittable[24m is ignored and assumed to
+       be 0. There are some handy macros for this:
+       [1mva_word_splittable_1 ([4m[22mtype1[24m[1m)[0m
+       [1mva_word_splittable_2 ([4m[22mtype1[24m[1m, [4m[22mtype2[24m[1m)[0m
+       [1mva_word_splittable_3 ([4m[22mtype1[24m[1m, [4m[22mtype2[24m[1m, [4m[22mtype3[24m[1m)[0m
+       [1mva_word_splittable_4 ([4m[22mtype1[24m[1m, [4m[22mtype2[24m[1m, [4m[22mtype3[24m[1m, [4m[22mtype4[24m[1m)[0m
+       For a struct with three slots
+       [1mstruct { [4m[22mtype1[24m [4mid1[24m[1m; [4m[22mtype2[24m [4mid2[24m[1m; [4m[22mtype3[24m [4mid3[24m[1m; }[0m
+       you can  specify  [4msplittable[24m  as  [1mva_word_splittable_3  ([4m[22mtype1[24m[1m,  [4m[22mtype2[24m[1m,[0m
+       [4mtype3[24m[1m) [22m.
+
+
+[1mNOTES[0m
+       Functions  which  want  to  emulate Kernighan & Ritchie style functions
+       (i.e., in ANSI C, functions without a typed argument list)  cannot  use
+       the  [4mtype[24m  values  [1mchar[22m,  [1mschar[22m,  [1muchar[22m, [1mshort[22m, [1mushort[22m, [1mfloat[22m.  As pre‐
+       scribed by the default K&R C expression promotions, they  have  to  use
+       [1mint  [22minstead of [1mchar[22m, [1mschar[22m, [1muchar[22m, [1mshort[22m, [1mushort [22mand [1mdouble [22minstead of
+       [1mfloat[22m.
+
+       The macros [1mva_start_longlong()[22m,  [1mva_start_ulonglong()[22m,  [1mva_return_long‐[0m
+       [1mlong()[22m, [1mva_return_ulonglong()[22m, [1mva_arg_longlong() [22mand [1mva_arg_ulonglong()[0m
+       work only if the C compiler has a  working  [1mlong  long  [22m64-bit  integer
+       type.
+
+       The  struct  types  used in [1mva_start_struct() [22mand [1mva_struct() [22mmust only
+       contain (signed or unsigned) int, long, long long  or  pointer  fields.
+       Struct types containing (signed or unsigned) char, short, float, double
+       or other structs are not supported.
+
+
+[1mSEE ALSO[0m
+       [1mvacall[22m(3), [1mtrampoline[22m(3).
+
+
+[1mBUGS[0m
+       The current implementations have been tested on a selection  of  common
+       cases but there are probably still many bugs.
+
+       There  are  typically built-in limits on the size of the argument-list,
+       which may also include the size of any structure arguments.
+
+       The decision whether a struct is to be returned in registers or in mem‐
+       ory considers only the struct's size and alignment. This is inaccurate:
+       for example, gcc on m68k-next returns [1mstruct { char a,b,c; } [22min  regis‐
+       ters  and [1mstruct { char a[3]; } [22min memory, although both types have the
+       same size and the same alignment.
+
+       The argument list can only be walked once.
+
+
+[1mNON-BUGS[0m
+       All information is passed in CPU registers and the stack. The  [1mcallback[0m
+       package is therefore multithread-safe.
+
+
+[1mPORTING[0m
+       Porting  [1mcallback  [22mconsists  in first porting the [1mvacall [22mand [1mtrampoline[0m
+       packages, then choosing a CPU register for  passing  the  closure  from
+       [1mtrampoline  [22mto  [1mvacall[22m.   This register is normally the register desig‐
+       nated by STATIC_CHAIN_REGNUM in the  gcc  source,  file  gcc-2.7.2/con‐
+       fig/[4mcpu[24m/[4mcpu[24m.h.
+
+
+[1mAUTHOR[0m
+       Bruno Haible <bruno@clisp.org>
+
+
+[1mACKNOWLEDGEMENTS[0m
+       Many ideas were cribbed from the gcc source.
+
+
+
+
+                                1 January 2017                     CALLBACK(3)

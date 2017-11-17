@@ -1,0 +1,24 @@
+# maintainer -*-Makefile-*-
+
+LN = ln -s
+RM = rm -f
+
+# ==================== Easily regeneratable files ====================
+
+ROFF_MAN = groff -Tutf8 -mandoc
+
+all : avcall.man \
+      avcall-i386-msvc.c
+
+avcall.man : avcall.3
+	$(ROFF_MAN) avcall.3 > avcall.man
+
+avcall-i386-msvc.c : avcall-i386-macro.S
+	cp -p avcall-i386-macro.S avcall-i386-msvc.c
+
+totally-clean : force
+	$(RM) avcall.man
+	$(RM) avcall-i386-msvc.c
+
+
+force :

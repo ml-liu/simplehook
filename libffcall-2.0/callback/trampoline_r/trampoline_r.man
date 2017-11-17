@@ -1,0 +1,71 @@
+TRAMPOLINE(3)              Library Functions Manual              TRAMPOLINE(3)
+
+
+
+[1mNAME[0m
+       trampoline - closures as first-class C functions
+
+[1mSYNOPSIS[0m
+       [1m#include <trampoline_r.h>[0m
+
+       [1mfunction = alloc_trampoline_r(address, data0, data1);[0m
+
+       [1mfree_trampoline_r(function);[0m
+
+       [1mis_trampoline_r(function)[0m
+       [1mtrampoline_r_address(function)[0m
+       [1mtrampoline_r_data0(function)[0m
+       [1mtrampoline_r_data1(function)[0m
+
+[1mDESCRIPTION[0m
+       These  functions implement [4mclosures[24m as first-class C functions.  A clo‐
+       sure consists of a regular C function and a piece of  data  which  gets
+       passed to the C function when the closure is called.
+
+       Closures as [4mfirst-class[24m [4mC[24m [4mfunctions[24m means that they fit into a function
+       pointer and can be called exactly like any other C function.   [4mfunction[0m
+       [1m=  alloc_trampoline_r([4m[22maddress[24m[1m,  [4m[22mdata0[24m[1m, [4m[22mdata1[24m[1m) [22mallocates a closure. When
+       [4mfunction[24m gets called, it stores in a special "lexical chain register" a
+       pointer  to a storage area containing [4mdata0[24m in its first word and [4mdata1[0m
+       in its second word and calls the C function at [4maddress[24m.   The  function
+       at [4maddress[24m is responsible for fetching [4mdata0[24m and [4mdata1[24m off the pointer.
+       Note that the "lexical chain register" is a call-used register, i.e. is
+       clobbered by function calls.
+
+       This  is  much  like [1mgcc[22m's local functions, except that the GNU C local
+       functions have dynamic extent (i.e. are deallocated when  the  creating
+       function  returns), while [4mtrampoline[24m provides functions with indefinite
+       extent: [4mfunction[24m is only deallocated  when  [1mfree_trampoline_r([4m[22mfunction[24m[1m)[0m
+       is called.
+
+       [1mis_trampoline_r([4m[22mfunction[24m[1m)  [22mchecks  whether  the C function [4mfunction[24m was
+       produced by a call to [4malloc_trampoline_r[24m.  If this  returns  true,  the
+       arguments given to [4malloc_trampoline_r[24m can be retrieved:
+
+           [1mtrampoline_r_address([4m[22mfunction[24m[1m) [22mreturns [4maddress[24m,
+
+           [1mtrampoline_r_data0([4m[22mfunction[24m[1m) [22mreturns [4mdata0[24m,
+
+           [1mtrampoline_r_data1([4m[22mfunction[24m[1m) [22mreturns [4mdata1[24m.
+
+
+[1mSEE ALSO[0m
+       [1mtrampoline[22m(3), [1mgcc[22m(1), [1mstdarg[22m(3)
+
+
+[1mPORTING[0m
+       The way [1mgcc [22mbuilds local functions is described in the gcc source, file
+       gcc-2.6.3/config/[4mcpu[24m/[4mcpu[24m.h.
+
+
+[1mAUTHOR[0m
+       Bruno Haible <bruno@clisp.org>
+
+
+[1mACKNOWLEDGEMENTS[0m
+       Many ideas were cribbed from the gcc source.
+
+
+
+
+                                1 January 2017                   TRAMPOLINE(3)

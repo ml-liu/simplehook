@@ -1,0 +1,30 @@
+# maintainer -*-Makefile-*-
+
+RM = rm -f
+
+# ==================== Easily regeneratable files ====================
+
+ROFF_MAN = groff -Tutf8 -mandoc
+
+all : trampoline_r.man
+
+trampoline_r.man : trampoline_r.3
+	$(ROFF_MAN) trampoline_r.3 > trampoline_r.man
+
+totally-clean : force
+	$(RM) trampoline_r.man
+
+
+# Files copied from other directories
+
+COPIED_FILES = \
+  PORTING \
+  cache.c \
+  cache-alpha.c \
+  cache-hppa.c
+copied-files : $(COPIED_FILES)
+$(COPIED_FILES) : % : ../../trampoline/%
+	cp $< $@
+
+
+force :

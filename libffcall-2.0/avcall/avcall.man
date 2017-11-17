@@ -1,0 +1,198 @@
+AVCALL(3)                  Library Functions Manual                  AVCALL(3)
+
+
+
+[1mNAME[0m
+       avcall - build a C argument list incrementally and call a C function on
+       it.
+
+[1mSYNOPSIS[0m
+       [1m#include <avcall.h>[0m
+
+       [1mav_alist [4m[22malist[24m[1m;[0m
+
+       [1mav_start_[4m[22mtype[24m[1m([4m[22malist[24m[1m, [4m[22m&func[24m [[[1m, [4m[22mreturn_type[24m][1m, [4m[22m&return_value[24m ][1m);[0m
+
+       [1mav_[4m[22mtype[24m[1m([4m[22malist[24m[1m, [22m[[4marg_type[24m[1m,[22m] [4mvalue[24m[1m);[0m
+
+       [1mav_call([4m[22malist[24m[1m);[0m
+
+[1mDESCRIPTION[0m
+       This set of macros builds an argument list for a C function  and  calls
+       the  function on it. It significantly reduces the amount of `glue' code
+       required for parsers, debuggers, imbedded interpreters, C extensions to
+       application  programs  and  other situations where collections of func‐
+       tions need to be called on lists of externally-supplied arguments.
+
+       Function calling conventions differ considerably on different  machines
+       and  [4mavcall[24m  attempts  to  provide  some  degree of isolation from such
+       architecture dependencies.
+
+       The interface is like [1mstdarg[22m(3) in reverse. All of the macros return  0
+       for success, < 0 for failure (e.g., argument list overflow or type-not-
+       supported).
+
+       (1)    [1m#include <avcall.h>[0m
+              and declare the argument list structure
+              [1mav_alist [4m[22malist[24m[1m;[0m
+
+       (2)    Set any special flags. This is architecture and compiler  depen‐
+              dent.  Compiler options that affect passing conventions may need
+              to be flagged by [1m#define[22ms before the [1m#include <avcall.h>  [22mstate‐
+              ment. However, the [4mconfigure[24m script should have determined which
+              [1m#define[22ms are needed and put them at the top of [1mavcall.h[22m.
+
+       (3)    Initialize the alist with the function address and return  value
+              pointer  (if  any).  There  is  a separate macro for each simple
+              return type ([u]char, [u]short,  [u]int,  [u]long,  [u]longlong,
+              float,  double,  where `u' indicates `unsigned'). The macros for
+              functions returning structures or pointers require  an  explicit
+              type argument.
+
+       E.g.,
+
+       [1mav_start_int ([4m[22malist[24m[1m, [4m[22m&func[24m[1m, [4m[22m&int_return[24m[1m);[0m
+
+       [1mav_start_double ([4m[22malist[24m[1m, [4m[22m&func[24m[1m, [4m[22m&double_return[24m[1m);[0m
+
+       [1mav_start_void ([4m[22malist[24m[1m, [4m[22m&func[24m[1m);[0m
+
+       [1mav_start_struct ([4m[22malist[24m[1m, [4m[22m&func[24m[1m, [4m[22mstruct_type[24m[1m, [4m[22msplittable[24m[1m,[0m
+                        [4m&struct_return[24m[1m);[0m
+
+       [1mav_start_ptr ([4m[22malist[24m[1m, [4m[22m&func[24m[1m, [4m[22mpointer_type[24m[1m,[0m
+                     [4m&pointer_return[24m[1m);[0m
+
+       The  [4msplittable[24m  flag specifies whether the [4mstruct_type[24m can be returned
+       in registers such that every struct field fits  entirely  in  a  single
+       register.   This   needs   to   be   specified   for  structs  of  size
+       2*sizeof(long). For structs of  size  <=  sizeof(long),  [4msplittable[24m  is
+       ignored  and  assumed  to  be  1. For structs of size > 2*sizeof(long),
+       [4msplittable[24m is ignored and assumed to be 0. There are some handy  macros
+       for this:
+       [1mav_word_splittable_1 ([4m[22mtype1[24m[1m)[0m
+       [1mav_word_splittable_2 ([4m[22mtype1[24m[1m, [4m[22mtype2[24m[1m)[0m
+       [1mav_word_splittable_3 ([4m[22mtype1[24m[1m, [4m[22mtype2[24m[1m, [4m[22mtype3[24m[1m)[0m
+       [1mav_word_splittable_4 ([4m[22mtype1[24m[1m, [4m[22mtype2[24m[1m, [4m[22mtype3[24m[1m, [4m[22mtype4[24m[1m)[0m
+       For a struct with three slots
+       [1mstruct { [4m[22mtype1[24m [4mid1[24m[1m; [4m[22mtype2[24m [4mid2[24m[1m; [4m[22mtype3[24m [4mid3[24m[1m; }[0m
+       you  can  specify  [4msplittable[24m  as  [1mav_word_splittable_3  ([4m[22mtype1[24m[1m, [4m[22mtype2[24m[1m,[0m
+       [4mtype3[24m[1m) [22m.
+
+       (4)    Push the arguments on to the list in order.  Again  there  is  a
+              macro  for  each simple built-in type, and the macros for struc‐
+              ture and pointer arguments require an extra type argument:
+
+       [1mav_int ([4m[22malist[24m[1m, [4m[22mint_value[24m[1m);[0m
+
+       [1mav_double ([4m[22malist[24m[1m, [4m[22mdouble_value[24m[1m);[0m
+
+       [1mav_struct ([4m[22malist[24m[1m, [4m[22mstruct_or_union_type[24m[1m, [4m[22mstruct_value[24m[1m);[0m
+
+       [1mav_ptr ([4m[22malist[24m[1m, [4m[22mpointer_type[24m[1m, [4m[22mpointer_value[24m[1m);[0m
+
+       (5)    Call the function, set the return value, and tidy up:
+
+       [1mav_call ([4m[22malist[24m[1m);[0m
+
+
+[1mNOTES[0m
+       (1) Functions whose first declaration is in Kernighan &  Ritchie  style
+       (i.e., without a typed argument list) MUST use default K&R C expression
+       promotions (char and short to int, float to double)  whether  they  are
+       compiled  by a K&R or an ANSI compiler, because the true argument types
+       may not be known at the call point. Such functions typically  back-con‐
+       vert their arguments to the declared types on function entry. (In fact,
+       the only way to pass a true char, short or float in  K&R  C  is  by  an
+       explicit cast: [1mfunc((char)c,(float)f) [22m).  Similarly, some K&R compilers
+       (such as Sun cc on the sparc) actually return a float as a double.
+
+       Hence, for arguments of functions declared in K&R style you should  use
+       [1mav_int()   [22mand   [1mav_double()   [22mrather  than  [1mav_char(),  av_short()  [22mor
+       [1mav_float().  [22mIf you use a K&R compiler, the avcall header files may  be
+       able to detect this and define [1mav_float(), [22metc, appropriately, but with
+       an ANSI compiler there is no way [4mavcall[24m can know  how  a  function  was
+       declared, so you have to correct the argument types yourself.
+
+       (2)  The explicit type arguments of the [1mav_struct() [22mand [1mav_ptr() [22mmacros
+       are typically used to calculate size, alignment,  and  passing  conven‐
+       tions.   This  may  not  be  sufficient  for some machines with unusual
+       structure and pointer handling: in this case additional [1mav_start_[4m[22mtype[24m[1m()[0m
+       and [1mav_[4m[22mtype[24m[1m() [22mmacros may be defined.
+
+       (3) The macros [1mav_start_longlong()[22m, [1mav_start_ulonglong()[22m, [1mav_longlong()[0m
+       and [1mav_ulonglong() [22mwork only if the C compiler has a working [1mlong  long[0m
+       64-bit integer type.
+
+       (4)  The  struct  types  used in [1mav_start_struct() [22mand [1mav_struct() [22mmust
+       only contain (signed or unsigned)  int,  long,  long  long  or  pointer
+       fields.   Struct  types  containing  (signed  or unsigned) char, short,
+       float, double or other structs are not supported.
+
+
+[1mSEE ALSO[0m
+       [1mstdarg[22m(3), [1mvarargs[22m(3).
+
+
+[1mBUGS[0m
+       The current implementations have been tested on a selection  of  common
+       cases but there are probably still many bugs.
+
+       There  are  typically built-in limits on the size of the argument-list,
+       which may also include the size of any structure arguments.
+
+       The decision whether a struct is to be returned in registers or in mem‐
+       ory considers only the struct's size and alignment. This is inaccurate:
+       for example, gcc on m68k-next returns [1mstruct { char a,b,c; } [22min  regis‐
+       ters  and [1mstruct { char a[3]; } [22min memory, although both types have the
+       same size and the same alignment.
+
+
+[1mNON-BUGS[0m
+       All information is passed in CPU registers and the  stack.  The  [1mavcall[0m
+       package is therefore multithread-safe.
+
+
+[1mPORTING AVCALL[0m
+       Ports, bug-fixes, and suggestions are most welcome. The macros required
+       for argument pushing are pretty grungy, but it does seem to be possible
+       to  port  avcall  to  a  range  of  machines.  Ports to non-standard or
+       non-32-bit machines are especially welcome so we can sort the interface
+       out before it's too late.
+
+       Knowledge  about  argument  passing conventions can be found in the gcc
+       source, file gcc-2.6.3/config/[4mcpu[24m/[4mcpu[24m.h, section "Stack  layout;  func‐
+       tion entry, exit and calling."
+
+       Some  of  the  grunge  is usually handled by a C or assembly level glue
+       routine that actually pushes the  arguments,  calls  the  function  and
+       unpacks  any return value.  This is called avcall_call(). A precompiled
+       assembler version for people without gcc is also  made  available.  The
+       routine  should ideally have flags for the passing conventions of other
+       compilers.
+
+       Many of the current routines waste a lot of stack space  and  generally
+       do hairy things to stack frames - a bit more assembly code would proba‐
+       bly help things along quite a bit here.
+
+
+[1mAUTHOR[0m
+       Bill Triggs <Bill.Triggs@inrialpes.fr>.
+
+
+[1mACKNOWLEDGEMENTS[0m
+       Some initial ideas were stolen from the C interface to the Zelk  exten‐
+       sions  to Oliver Laumann's Elk scheme interpreter by J.P.Lewis, NEC C&C
+       Research, <zilla@ccrl.nj.nec.com> (for Sun4 & SGI),  and  Roy  Feather‐
+       stone's  <roy@robots.oxford.ac.uk>  personal  C  interface  library for
+       Sun[34] & SGI.  I also looked at the machine-dependent parts of the GCC
+       and  GDB  distributions,  and put the gcc asm() extensions to good use.
+       Thanks guys!
+
+       This work was partly supported by EC-ESPRIT Basic Research Action  SEC‐
+       OND.
+
+
+
+
+                                 23 July 2017                        AVCALL(3)

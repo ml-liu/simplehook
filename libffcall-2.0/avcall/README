@@ -1,0 +1,73 @@
+avcall - calling C functions with variable arguments
+
+This library allows arbitrary C functions to be called from embedded
+interpreters, debuggers, RPC calls, etc, by building up a C
+argument-list incrementally from explicitly typed arguments. This 
+considerably reduces the amount of boilerplate glue code required
+for such applications.
+
+The interface is like stdargs/varargs in reverse and is intended to be as
+portable as possible, however the details of function calling are highly
+machine-dependent so your mileage may vary. At the very least there are
+typically built-in limits on the size of the argument-list. The
+argument-pushing macros all return 0 for success, < 0 for error (eg,
+arg-list overflow).
+
+
+Installation instructions:
+
+    Configure the parent directory. Then:
+        cd avcall
+        make
+        make check
+        make install
+
+
+Files in this package:
+
+    Documentation:
+
+        README          this text
+        COPYING         free software license
+        PLATFORMS       list of supported platforms
+        avcall.3        manual page in Unix man format
+        avcall.man      manual page
+        avcall.html     manual page in HTML format
+        DOC             documentation
+
+    Source:
+
+        avcall.h        main include file
+        avcall-*.c      source for the main interface function
+        avcall-*.[sS]   its translation to assembly language
+        avcall-libapi.c     implementation of other library API
+        avcall-structcpy.c  auxiliary function
+        tests.c         test program
+
+    Building:
+
+        Makefile.in     Makefile master
+
+    Porting:
+
+        Makefile.devel  developer's Makefile
+
+
+Copyright notice:
+
+Copyright 1993-1995 Bill Triggs <Bill.Triggs@imag.fr>
+Copyright 1995-2017 Bruno Haible <bruno@clisp.org>
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+

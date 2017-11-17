@@ -1,0 +1,53 @@
+Workaround against the ELF symbol resolving routine
+===================================================
+
+On Solaris 2.6 / i386, when the function being jumped to is an external symbol
+of a shared library, the jump actually points to an ELF indirect jump:
+  jmp *PTR
+where PTR initially contains the address of some resolving routine which
+will replace the PTR contents with the actual code address of the function
+and then jump to the function.
+Unfortunately, this resolving routine clobbers all three registers:
+%eax, %edx, %ecx. But %ecx is the register in which we pass the env_t
+(that points to function and data) to callback_receiver.
+
+The same effect is also seen on Linux / x86_64, where r10 is clobbered by the
+resolving routine (called '_dl_runtime_resolve' in glibc).
+See https://savannah.gnu.org/bugs/?32466 .
+
+The same thing can happen on all platforms that support ELF, since the
+lexical closure register is always a call-used register (see file
+call-used-registers.txt).
+
+On i386 (and m68k), it would be possible to solve this by passing the env_t
+as an extra argument on the stack and restore it to the lexical closure
+register at the beginning of callback_receiver. But this approach becomes too
+complex for the other CPUs.
+
+It is not possible to make a first call to callback_receiver to "straighten
+things out", because during this first call the lexical closure register gets
+clobbered and callback_receiver then invokes undefined behaviour.
+
+It may be possible to fix this, on some platforms,
+  - by use of "ld -r" to combine object files, so that the code in
+    trampoline_r.o can access callback_receiver directly, or
+  - by use of symbol visibility control, so that callback_receiver is
+    not an external symbol of the shared library any more, or
+  - by an appropriate use of dlsym().
+But this is highly platform dependent (linker, compiler, libc) and there may
+be some platforms for which none of these approaches works.
+
+A workaround that was implemented in January 2017 was to
+  1) modify trampoline_r so that it produces a trampoline that pushes the
+     env_t on the stack (preserving correct stack alignment) instead of
+     putting it in the lexical closure register,
+  2) insert a couple of instructions at the beginning of callback_receiver
+     that pops this value off the stack and puts in in the lexical closure
+     register.
+
+An even simpler workaround is to make callback_receiver a static function,
+so that the ELF linker does not even see it. Instead introduce a function
+callback_get_receiver that returns &callback_receiver. This function is global,
+but since it has a normal calling convention, the ELF symbol resolving routine
+does not cause trouble the first time callback_get_receiver() is invoked.
+

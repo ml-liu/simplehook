@@ -1,0 +1,66 @@
+callback - closures with variable arguments as first-class C functions
+
+This library implements closures with variable arguments and variable return
+values as first-class C functions. A closure consists of a regular C function
+and a piece of data which gets passed to the C function when the closure is
+called.
+
+This library is especially suited to the implementation of call-back functions
+in embedded interpreters.
+
+
+Installation instructions:
+
+    Configure the parent directory. Then:
+        cd callback
+        make
+        make check
+        make install
+
+
+Files in this package:
+
+    Documentation:
+
+        README          this text
+        COPYING         free software license
+        PLATFORMS       list of supported platforms
+        MIGRATION       migration guide from vacall+trampoline
+        callback.3      manual page in Unix man format
+        callback.man    manual page
+        callback.html   manual page in HTML format
+
+    Source:
+
+        callback.h      include file
+        tests.c         test program
+        vacall_r/*      a reentrant version of the vacall package
+        trampoline_r/*  a reentrant version of the trampoline package
+
+    Building:
+
+        Makefile.in     Makefile master
+
+    Porting:
+
+        Makefile.devel  developer's Makefile
+        call-used-registers.txt  table of call-used registers on different CPUs
+
+
+Copyright notice:
+
+Copyright 1995-2017 Bruno Haible <bruno@clisp.org>
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+

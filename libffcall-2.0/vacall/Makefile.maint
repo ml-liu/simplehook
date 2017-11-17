@@ -1,0 +1,24 @@
+# maintainer -*-Makefile-*-
+
+LN = ln -s
+RM = rm -f
+
+# ==================== Easily regeneratable files ====================
+
+ROFF_MAN = groff -Tutf8 -mandoc
+
+all : vacall.man \
+      vacall-i386-msvc.c
+
+vacall.man : vacall.3
+	$(ROFF_MAN) vacall.3 > vacall.man
+
+vacall-i386-msvc.c : vacall-i386-macro.S
+	(echo '#ifdef _MSC_VER' ; echo '#include "vacall.h"' ; echo '#endif' ; cat vacall-i386-macro.S) > vacall-i386-msvc.c
+
+totally-clean : force
+	$(RM) vacall.man
+	$(RM) vacall-i386-msvc.c
+
+
+force :

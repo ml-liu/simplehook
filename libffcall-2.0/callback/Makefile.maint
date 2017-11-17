@@ -1,0 +1,29 @@
+# maintainer -*-Makefile-*-
+
+SHELL = /bin/sh
+MAKE = make
+
+# ==================== Easily regeneratable files ====================
+
+ROFF_MAN = groff -Tutf8 -mandoc
+
+all : callback.man \
+      vacall_r/vacall-i386-msvc.c \
+      trampoline_r/trampoline_r.man
+
+callback.man : callback.3
+	$(ROFF_MAN) callback.3 > callback.man
+
+vacall_r/vacall-i386-msvc.c : vacall_r/vacall-i386-macro.S
+	cd vacall_r && $(MAKE) -f Makefile.maint vacall-i386-msvc.c
+
+trampoline_r/trampoline_r.man : trampoline_r/trampoline_r.3
+	cd trampoline_r && $(MAKE) -f Makefile.maint trampoline_r.man
+
+totally-clean : force
+	$(RM) callback.man
+	cd vacall_r && $(MAKE) -f Makefile.maint totally-clean
+	cd trampoline_r && $(MAKE) -f Makefile.maint totally-clean
+
+
+force :

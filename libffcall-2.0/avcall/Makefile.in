@@ -1,0 +1,396 @@
+# Makefile for avcall
+
+#### Start of system configuration section. ####
+
+HOST = @host@
+CPU = @HOST_CPU_C_ABI@
+OS = @host_os@
+
+# Directories used by "make":
+srcdir = @srcdir@
+
+# Directories used by "make install":
+prefix = @prefix@
+local_prefix = /usr/local
+exec_prefix = @exec_prefix@
+libdir = @libdir@
+includedir = @includedir@
+mandir = @mandir@
+datadir = @datadir@
+datarootdir = @datarootdir@
+htmldir = $(datadir)/html
+
+# Programs used by "make":
+# C compiler
+CC = @CC@
+CFLAGS = @CFLAGS@
+CPP = @CPP@
+# C++ compiler
+CXX = @CXX@
+CXXFLAGS = @CXXFLAGS@
+# Both C and C++ compiler
+CPPFLAGS = @CPPFLAGS@
+INCLUDES = -I. -I$(srcdir) -I.. -I$(srcdir)/..
+ASPFLAGS = `if test @AS_UNDERSCORE@ = true; then echo '-DASM_UNDERSCORE'; fi`
+LDFLAGS = @LDFLAGS@
+LIBTOOL = @LIBTOOL@
+LIBTOOL_COMPILE = $(LIBTOOL) --mode=compile
+LIBTOOL_LINK = $(LIBTOOL) --mode=link
+LIBTOOL_INSTALL = $(LIBTOOL) --mode=install
+LIBTOOL_UNINSTALL = $(LIBTOOL) --mode=uninstall
+AR = @AR@
+AR_FLAGS = rc
+RANLIB = @RANLIB@
+MV = mv
+LN = @LN@
+RM = rm -f
+@SET_MAKE@
+
+# Programs used by "make install":
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = @INSTALL_DATA@
+
+#### End of system configuration section. ####
+
+SHELL = /bin/sh
+
+# Needed by $(LIBTOOL).
+top_builddir = ..
+
+OBJECTS = avcall.lo avcall-libapi.lo avcall-structcpy.lo avcall-compat.lo
+
+# Limit the set of exported symbols, on those platforms where libtool supports it.
+# Currently this does not exclude any symbol; maybe sometime in the future...
+LIBAVCALL_EXPORTED_SYMBOLS_REGEX = '^avcall_|^__builtin_avcall$$'
+
+# Before making a release, change this according to the libtool documentation,
+# section "Library interface versions".
+LIBAVCALL_VERSION_INFO = 1:0:0
+
+all : $(OBJECTS) libavcall.la $(srcdir)/avcall.3 $(srcdir)/avcall.html
+
+avcall.lo : avcall-$(CPU).lo
+	$(RM) avcall.lo avcall.@OBJEXT@
+	$(LN) avcall-$(CPU).lo avcall.lo
+	if test -f avcall-$(CPU).@OBJEXT@; then $(LN) avcall-$(CPU).@OBJEXT@ avcall.@OBJEXT@; fi
+
+@IFNOT_MSVC@avcall-i386.lo : avcall-i386.s
+@IFNOT_MSVC@	$(LIBTOOL_COMPILE) $(CC) @GCC_X_NONE@ -c avcall-i386.s
+
+@IFNOT_MSVC@avcall-i386.s : $(srcdir)/avcall-i386-macro.S
+@IFNOT_MSVC@	$(CPP) $(ASPFLAGS) -I$(srcdir)/../common - < $(srcdir)/avcall-i386-macro.S | grep -v '^ *#line' | grep -v '^#' | sed -e 's,% ,%,g' -e 's,\. ,.,g' -e 's,@ ,@,g' -e 's,//.*$$,,' -e 's/##//g' > avcall-i386.s
+
+@IF_MSVC@avcall-i386.lo : $(srcdir)/avcall-i386-msvc.c
+@IF_MSVC@	$(LIBTOOL_COMPILE) $(CC) -I$(srcdir)/../common $(CPPFLAGS) $(CFLAGS) -c $(srcdir)/avcall-i386-msvc.c -o avcall-i386.lo
+
+avcall-sparc.lo : avcall-sparc.s
+	$(LIBTOOL_COMPILE) $(CC) @GCC_X_NONE@ -c avcall-sparc.s
+
+avcall-sparc.s : $(srcdir)/avcall-sparc-macro.S
+	$(CPP) $(ASPFLAGS) -I$(srcdir)/../common - < $(srcdir)/avcall-sparc-macro.S | grep -v '^ *#line' | grep -v '^#' | sed -e 's,% ,%,g' -e 's,\. ,.,g' -e 's,//.*$$,,' -e 's,\$$,#,g' -e 's,# ,#,g' > avcall-sparc.s
+
+avcall-sparc64.lo : avcall-sparc64.s
+	$(LIBTOOL_COMPILE) $(CC) @GCC_X_NONE@ -c avcall-sparc64.s
+
+avcall-sparc64.s : $(srcdir)/avcall-sparc64-macro.S
+	$(CPP) $(ASPFLAGS) -I$(srcdir)/../common - < $(srcdir)/avcall-sparc64-macro.S | grep -v '^ *#line' | grep -v '^#' | sed -e 's,% ,%,g' -e 's,\. ,.,g' -e 's,//.*$$,,' -e 's,\$$,#,g' -e 's,# ,#,g' > avcall-sparc64.s
+
+avcall-m68k.lo : avcall-m68k.s
+	$(LIBTOOL_COMPILE) $(CC) @GCC_X_NONE@ -c avcall-m68k.s
+
+avcall-m68k.s : $(srcdir)/avcall-m68k.mit.S $(srcdir)/avcall-m68k.motorola.S
+	$(CPP) $(ASPFLAGS) -I$(srcdir)/../common $(srcdir)/avcall-m68k.motorola.S | grep -v '^ *#line' | grep -v '^#' | sed -e 's,% ,%,g' -e 's,//.*$$,,' | if test @AS_UNDERSCORE@ = true; then sed -e 's/\$$//g'; else sed -e 's/\$$/%/g'; fi > avcall-m68k.s
+
+avcall-mips.lo : avcall-mips.s
+	$(LIBTOOL_COMPILE) $(CC) @GCC_X_NONE@ -c avcall-mips.s
+
+avcall-mips.s : $(srcdir)/avcall-mips@ENDIANNESS@-macro.S
+	$(CPP) $(ASPFLAGS) -I$(srcdir)/../common $(srcdir)/avcall-mips@ENDIANNESS@-macro.S | grep -v '^ *#line' | grep -v '^#' | sed -e 's,% ,%,g' -e 's,//.*$$,,' > avcall-mips.s
+
+avcall-mipsn32.lo : avcall-mipsn32.s
+	$(LIBTOOL_COMPILE) $(CC) @GCC_X_NONE@ -c avcall-mipsn32.s
+
+avcall-mipsn32.s : $(srcdir)/avcall-mipsn32@ENDIANNESS@-macro.S
+	$(CPP) $(ASPFLAGS) -I$(srcdir)/../common $(srcdir)/avcall-mipsn32@ENDIANNESS@-macro.S | grep -v '^ *#line' | grep -v '^#' | sed -e 's,% ,%,g' -e 's,//.*$$,,' > avcall-mipsn32.s
+
+avcall-mips64.lo : avcall-mips64.s
+	$(LIBTOOL_COMPILE) $(CC) @GCC_X_NONE@ -c avcall-mips64.s
+
+avcall-mips64.s : $(srcdir)/avcall-mips64@ENDIANNESS@-macro.S
+	$(CPP) $(ASPFLAGS) -I$(srcdir)/../common $(srcdir)/avcall-mips64@ENDIANNESS@-macro.S | grep -v '^ *#line' | grep -v '^#' | sed -e 's,% ,%,g' -e 's,//.*$$,,' > avcall-mips64.s
+
+avcall-alpha.lo : avcall-alpha.s
+	$(LIBTOOL_COMPILE) $(CC) @GCC_X_NONE@ -c avcall-alpha.s
+
+avcall-alpha.s : $(srcdir)/avcall-alpha-macro.S
+	$(CPP) $(ASPFLAGS) $(srcdir)/avcall-alpha-macro.S | grep -v '^ *#line' | grep -v '^#' | sed -e 's,% ,%,g' -e 's,//.*$$,,' > avcall-alpha.s
+
+avcall-hppa.lo : avcall-hppa.s
+	$(LIBTOOL_COMPILE) $(CC) @GCC_X_NONE@ -c avcall-hppa.s
+
+avcall-hppa.s : $(srcdir)/avcall-hppa-macro.S
+	$(CPP) $(ASPFLAGS) -I$(srcdir)/../common $(srcdir)/avcall-hppa-macro.S | grep -v '^ *#line' | grep -v '^#' | sed -e "s,!,',g" > avcall-hppa.s
+
+avcall-hppa64.lo : avcall-hppa64.s
+	$(LIBTOOL_COMPILE) $(CC) @GCC_X_NONE@ -c avcall-hppa64.s
+
+avcall-hppa64.s : $(srcdir)/avcall-hppa64-macro.S
+	$(CPP) $(ASPFLAGS) -I$(srcdir)/../common $(srcdir)/avcall-hppa64-macro.S | grep -v '^ *#line' | grep -v '^#' | sed -e "s,!,',g" > avcall-hppa64.s
+
+avcall-arm.lo : avcall-arm.s
+	$(LIBTOOL_COMPILE) $(CC) @GCC_X_NONE@ -c avcall-arm.s
+
+avcall-arm.s : $(srcdir)/avcall-arm-macro.S
+	$(CPP) $(ASPFLAGS) -I$(srcdir)/../common $(srcdir)/avcall-arm-macro.S | grep -v '^ *#line' | grep -v '^#' | sed -e 's,% ,%,g' -e 's,//,@,g' -e 's,\$$,#,g' > avcall-arm.s
+
+avcall-armhf.lo : avcall-armhf.s
+	$(LIBTOOL_COMPILE) $(CC) @GCC_X_NONE@ -c avcall-armhf.s
+
+avcall-armhf.s : $(srcdir)/avcall-armhf-macro.S
+	$(CPP) $(ASPFLAGS) -I$(srcdir)/../common $(srcdir)/avcall-armhf-macro.S | grep -v '^ *#line' | grep -v '^#' | sed -e 's,% ,%,g' -e 's,//,@,g' -e 's,\$$,#,g' > avcall-armhf.s
+
+avcall-arm64.lo : avcall-arm64.s
+	$(LIBTOOL_COMPILE) $(CC) @GCC_X_NONE@ -c avcall-arm64.s
+
+avcall-arm64.s : $(srcdir)/avcall-arm64-macro.S
+	$(CPP) $(ASPFLAGS) -I$(srcdir)/../common $(srcdir)/avcall-arm64-macro.S | grep -v '^ *#line' | grep -v '^#' | sed -e 's,% ,%,g' -e 's,//,@,g' -e 's,\$$,#,g' > avcall-arm64.s
+
+avcall-powerpc.lo : avcall-powerpc.s
+	$(LIBTOOL_COMPILE) $(CC) @GCC_X_NONE@ -c avcall-powerpc.s
+
+avcall-powerpc.s : $(srcdir)/avcall-powerpc-aix.s $(srcdir)/avcall-powerpc-linux-macro.S $(srcdir)/avcall-powerpc-macos.s $(srcdir)/avcall-powerpc-sysv4-macro.S
+	case "$(OS)" in \
+	  aix*) syntax=aix;; \
+	  linux* | netbsd* | openbsd*) syntax=linux;; \
+	  macos* | darwin*) syntax=macos;; \
+	  *) syntax=sysv4;; \
+	esac; \
+	case $${syntax} in \
+	  macos) \
+	    grep -v '\.machine' $(srcdir)/avcall-powerpc-$${syntax}.s > avcall-powerpc.s || exit 1 ;; \
+	  linux | sysv4) \
+	    $(CPP) $(ASPFLAGS) $(srcdir)/avcall-powerpc-$${syntax}-macro.S | grep -v '^ *#line' | grep -v '^#' | sed -e 's,% ,%,g' -e 's,//.*$$,,' > avcall-powerpc.s || exit 1 ;; \
+	  *) \
+	    cp $(srcdir)/avcall-powerpc-$${syntax}.s avcall-powerpc.s || exit 1 ;; \
+	esac
+
+avcall-powerpc64.lo : avcall-powerpc64.s
+	$(LIBTOOL_COMPILE) $(CC) @GCC_X_NONE@ -c avcall-powerpc64.s
+
+avcall-powerpc64.s : $(srcdir)/avcall-powerpc64-aix.s $(srcdir)/avcall-powerpc64-linux.S
+	case "$(OS)" in \
+	  aix*) syntax=aix;; \
+	  *) syntax=linux;; \
+	esac; \
+	case $${syntax} in \
+	  linux) \
+	    $(CPP) $(ASPFLAGS) $(srcdir)/avcall-powerpc64-$${syntax}.S | grep -v '^ *#line' | grep -v '^#' | sed -e 's,% ,%,g' -e 's,//.*$$,,' > avcall-powerpc64.s || exit 1 ;; \
+	  *) \
+	    cp $(srcdir)/avcall-powerpc64-$${syntax}.s avcall-powerpc64.s || exit 1 ;; \
+	esac
+
+avcall-powerpc64-elfv2.lo : avcall-powerpc64-elfv2.s
+	$(LIBTOOL_COMPILE) $(CC) @GCC_X_NONE@ -c avcall-powerpc64-elfv2.s
+
+avcall-powerpc64-elfv2.s : $(srcdir)/avcall-powerpc64-elfv2-linux.S
+	$(CPP) $(ASPFLAGS) $(srcdir)/avcall-powerpc64-elfv2-linux.S | grep -v '^ *#line' | grep -v '^#' | sed -e 's,% ,%,g' -e 's,//.*$$,,' > avcall-powerpc64-elfv2.s
+
+avcall-ia64.lo : avcall-ia64.s
+	$(LIBTOOL_COMPILE) $(CC) @GCC_X_NONE@ -c avcall-ia64.s
+
+avcall-ia64.s : $(srcdir)/avcall-ia64-macro.S
+	$(CPP) $(ASPFLAGS) $(srcdir)/avcall-ia64-macro.S | grep -v '^ *#line' | grep -v '^#' | sed -e 's,% ,%,g' -e 's,//.*$$,,' > avcall-ia64.s
+
+@IFNOT_MSVC@avcall-x86_64.lo : avcall-x86_64.s
+@IFNOT_MSVC@	$(LIBTOOL_COMPILE) $(CC) @GCC_X_NONE@ -c avcall-x86_64.s
+
+@IFNOT_MSVC@avcall-x86_64.s : $(srcdir)/avcall-x86_64-macro.S $(srcdir)/avcall-x86_64-windows-macro.S
+@IFNOT_MSVC@	case "$(OS)" in \
+@IFNOT_MSVC@	  cygwin* | mingw*) variant='-windows';; \
+@IFNOT_MSVC@	  *) variant='';; \
+@IFNOT_MSVC@	esac; \
+@IFNOT_MSVC@	$(CPP) $(ASPFLAGS) -I$(srcdir)/../common - < $(srcdir)/avcall-x86_64$${variant}-macro.S | grep -v '^ *#line' | grep -v '^#' | sed -e 's,% ,%,g' -e 's,\. ,.,g' -e 's,@ ,@,g' -e 's,//.*$$,,' -e 's/##//g' > avcall-x86_64.s
+
+@IF_MSVC@avcall-x86_64.lo : avcall-x86_64.asm
+@IF_MSVC@	$(LIBTOOL_COMPILE) ml64 -c -nologo avcall-x86_64.asm
+@IF_MSVC@	mkdir -p .libs; cp avcall-x86_64.@OBJEXT@ .libs/avcall-x86_64.@OBJEXT@
+
+@IF_MSVC@avcall-x86_64.asm : $(srcdir)/avcall-x86_64-windows-macro.S
+@IF_MSVC@	{ $(CPP) $(ASPFLAGS) -I$(srcdir)/../common $(srcdir)/avcall-x86_64-windows-macro.S | grep -v '^#'; echo 'END'; } > avcall-x86_64.asm
+
+avcall-x86_64-x32.lo : avcall-x86_64-x32.s
+	$(LIBTOOL_COMPILE) $(CC) @GCC_X_NONE@ -c avcall-x86_64-x32.s
+
+avcall-x86_64-x32.s : $(srcdir)/avcall-x86_64-x32-linux.s
+	cp $(srcdir)/avcall-x86_64-x32-linux.s avcall-x86_64-x32.s
+
+avcall-s390.lo : avcall-s390.s
+	$(LIBTOOL_COMPILE) $(CC) @GCC_X_NONE@ -c avcall-s390.s
+
+avcall-s390.s : $(srcdir)/avcall-s390-macro.S
+	$(CPP) $(ASPFLAGS) $(srcdir)/avcall-s390-macro.S | grep -v '^ *#line' | grep -v '^#' | sed -e 's,% ,%,g' -e 's,//.*$$,,' > avcall-s390.s
+
+avcall-s390x.lo : avcall-s390x.s
+	$(LIBTOOL_COMPILE) $(CC) @GCC_X_NONE@ -c avcall-s390x.s
+
+avcall-s390x.s : $(srcdir)/avcall-s390x-macro.S
+	$(CPP) $(ASPFLAGS) $(srcdir)/avcall-s390x-macro.S | grep -v '^ *#line' | grep -v '^#' | sed -e 's,% ,%,g' -e 's,//.*$$,,' > avcall-s390x.s
+
+avcall-libapi.lo : $(srcdir)/avcall-libapi.c ../config.h $(srcdir)/avcall-internal.h $(srcdir)/avcall.h $(srcdir)/avcall-alist.h
+	$(LIBTOOL_COMPILE) $(CC) $(INCLUDES) $(CPPFLAGS) $(CFLAGS) -c $(srcdir)/avcall-libapi.c
+
+avcall-structcpy.lo : $(srcdir)/avcall-structcpy.c $(srcdir)/../common/structcpy.c
+	$(LIBTOOL_COMPILE) $(CC) -I$(srcdir)/../common $(CPPFLAGS) $(CFLAGS) -c $(srcdir)/avcall-structcpy.c
+
+avcall-compat.lo : $(srcdir)/avcall-compat.c ../config.h
+	$(LIBTOOL_COMPILE) $(CC) $(INCLUDES) $(CPPFLAGS) $(CFLAGS) -c $(srcdir)/avcall-compat.c
+
+libavcall.la : $(OBJECTS)
+	$(LIBTOOL_LINK) $(CC) -o libavcall.la -rpath $(libdir) -no-undefined -export-symbols-regex $(LIBAVCALL_EXPORTED_SYMBOLS_REGEX) -version-info $(LIBAVCALL_VERSION_INFO) $(OBJECTS) $(LDFLAGS)
+
+# Installs the library and include files only. Typically called with only
+# $(libdir) and $(includedir) - don't use $(prefix) and $(exec_prefix) here.
+install-lib : all force
+	mkdir -p $(libdir)
+	$(LIBTOOL_INSTALL) $(INSTALL_DATA) libavcall.la $(libdir)/libavcall.la
+	mkdir -p $(includedir)
+	$(INSTALL_DATA) $(srcdir)/avcall.h $(includedir)/avcall.h
+
+install : all force
+	mkdir -p $(DESTDIR)$(prefix)
+	mkdir -p $(DESTDIR)$(exec_prefix)
+	mkdir -p $(DESTDIR)$(libdir)
+	$(LIBTOOL_INSTALL) $(INSTALL_DATA) libavcall.la $(DESTDIR)$(libdir)/libavcall.la
+	mkdir -p $(DESTDIR)$(includedir)
+	$(INSTALL_DATA) $(srcdir)/avcall.h $(DESTDIR)$(includedir)/avcall.h
+	mkdir -p $(DESTDIR)$(mandir)
+	mkdir -p $(DESTDIR)$(mandir)/man3
+	$(INSTALL_DATA) $(srcdir)/avcall.3 $(DESTDIR)$(mandir)/man3/avcall.3
+	mkdir -p $(DESTDIR)$(datadir)
+	mkdir -p $(DESTDIR)$(htmldir)
+	$(INSTALL_DATA) $(srcdir)/avcall.html $(DESTDIR)$(htmldir)/avcall.html
+
+installdirs : force
+	mkdir -p $(DESTDIR)$(prefix)
+	mkdir -p $(DESTDIR)$(exec_prefix)
+	mkdir -p $(DESTDIR)$(libdir)
+	mkdir -p $(DESTDIR)$(includedir)
+	mkdir -p $(DESTDIR)$(mandir)
+	mkdir -p $(DESTDIR)$(mandir)/man3
+	mkdir -p $(DESTDIR)$(datadir)
+	mkdir -p $(DESTDIR)$(htmldir)
+
+uninstall : force
+	$(LIBTOOL_UNINSTALL) $(RM) $(DESTDIR)$(libdir)/libavcall.la
+	$(RM) $(DESTDIR)$(includedir)/avcall.h
+	$(RM) $(DESTDIR)$(mandir)/man3/avcall.3
+	$(RM) $(DESTDIR)$(htmldir)/avcall.html
+
+minitests.@OBJEXT@ : $(srcdir)/minitests.c $(srcdir)/tests.c $(srcdir)/avcall.h
+	$(CC) $(INCLUDES) $(CPPFLAGS) $(CFLAGS) -c $(srcdir)/minitests.c
+
+minitests.s : $(srcdir)/minitests.c $(srcdir)/tests.c $(srcdir)/avcall.h
+	$(CC) $(INCLUDES) $(CPPFLAGS) $(CFLAGS) -S $(srcdir)/minitests.c
+
+minitests : minitests.@OBJEXT@ libavcall.la
+	$(LIBTOOL_LINK) $(CC) $(CFLAGS) @GCC_X_NONE@ minitests.@OBJEXT@ libavcall.la $(LDFLAGS) -o minitests
+
+minitests-c++.@OBJEXT@ : $(srcdir)/minitests-c++.cc $(srcdir)/minitests.c $(srcdir)/tests.c $(srcdir)/avcall.h
+	$(CXX) $(INCLUDES) $(CPPFLAGS) $(CXXFLAGS) -c $(srcdir)/minitests-c++.cc
+
+minitests-c++ : minitests-c++.@OBJEXT@ libavcall.la
+	$(LIBTOOL_LINK) $(CXX) $(CXXFLAGS) @GCC_X_NONE@ minitests-c++.@OBJEXT@ libavcall.la $(LDFLAGS) -o minitests-c++
+
+check : all minitests
+	./minitests > minitests.out
+	LC_ALL=C uniq -u < minitests.out > minitests.output.$(HOST)
+	test '!' -s minitests.output.$(HOST)
+@IF_CXX@# minitests-c++ crashes on HP-UX HPPA 32-bit with aCC, even without "-O".
+@IF_CXX@	test $(CPU) = 'hppa' || { \
+@IF_CXX@	  ./minitests-c++ > minitests-c++.out \
+@IF_CXX@	  && LC_ALL=C uniq -u < minitests-c++.out > minitests-c++.output.$(HOST) \
+@IF_CXX@	  && test '!' -s minitests-c++.output.$(HOST); \
+@IF_CXX@	}
+@IF_CXX@check : minitests-c++
+
+tests.@OBJEXT@ : $(srcdir)/tests.c $(srcdir)/avcall.h
+	$(CC) $(INCLUDES) $(CPPFLAGS) $(CFLAGS) -c $(srcdir)/tests.c
+
+tests.s : $(srcdir)/tests.c $(srcdir)/avcall.h
+	$(CC) $(INCLUDES) $(CPPFLAGS) $(CFLAGS) -S $(srcdir)/tests.c
+
+tests : tests.@OBJEXT@ libavcall.la
+	$(LIBTOOL_LINK) $(CC) $(CFLAGS) @GCC_X_NONE@ tests.@OBJEXT@ libavcall.la $(LDFLAGS) -o tests
+
+extracheck : all tests
+	./tests > tests.out
+	LC_ALL=C uniq -u < tests.out > tests.output.$(HOST)
+	test '!' -s tests.output.$(HOST)
+
+mostlyclean : clean
+
+clean : force
+	$(RM) *.@OBJEXT@ *.lo *.a libavcall.* core
+	$(RM) avcall-i386.s avcall-sparc.s avcall-sparc64.s avcall-m68k.s avcall-mips.s avcall-mipsn32.s avcall-mips64.s avcall-alpha.s avcall-hppa.s avcall-hppa64.s avcall-arm.s avcall-armhf.s avcall-arm64.s avcall-powerpc.s avcall-powerpc64.s avcall-powerpc64-elfv2.s avcall-ia64.s avcall-x86_64.s avcall-x86_64.asm avcall-x86_64-x32.s avcall-s390.s avcall-s390x.s
+	$(RM) -r .libs _libs
+	$(RM) minitests.@OBJEXT@ minitests.s minitests minitests.out
+	$(RM) minitests-c++.@OBJEXT@ minitests-c++ minitests-c++.out
+	$(RM) tests.@OBJEXT@ tests.s tests tests.out
+
+distclean : clean
+	$(RM) Makefile minitests.output.* minitests-c++.output.* tests.output.*
+
+maintainer-clean : distclean
+
+
+# List of source files (committed in version control or generated by Makefile.devel).
+SOURCE_FILES = \
+  COPYING \
+  DOC PLATFORMS README avcall.3 avcall.html \
+  Makefile.devel \
+  Makefile.maint \
+  Makefile.in \
+  avcall.h avcall-internal.h avcall-alist.h \
+  avcall-alpha.c avcall-alpha-linux.s avcall-alpha-macro.S \
+  avcall-arm.c avcall-arm-macro.S \
+  avcall-armhf.c avcall-armhf-macro.S \
+  avcall-arm64.c avcall-arm64-macro.S \
+  avcall-hppa.c avcall-hppa-linux.s avcall-hppa-macro.S \
+  avcall-hppa64.c avcall-hppa64-linux.s avcall-hppa64-macro.S \
+  avcall-i386.c avcall-i386-linux.s avcall-i386-macro.S \
+  avcall-ia64.c avcall-ia64-linux.s avcall-ia64-macro.S \
+  avcall-m68k.c avcall-m68k-linux.s avcall-m68k-sun.s avcall-m68k.mit.S avcall-m68k.motorola.S \
+  avcall-mips.c avcall-mipseb-linux.s avcall-mipsel-linux.s avcall-mipseb-macro.S avcall-mipsel-macro.S \
+  avcall-mipsn32.c avcall-mipsn32eb-linux.s avcall-mipsn32el-linux.s avcall-mipsn32eb-macro.S avcall-mipsn32el-macro.S \
+  avcall-mips64.c avcall-mips64eb-linux.s avcall-mips64el-linux.s avcall-mips64eb-macro.S avcall-mips64el-macro.S \
+  avcall-powerpc.c \
+  avcall-powerpc-aix.s \
+  avcall-powerpc-linux.s avcall-powerpc-linux-macro.S avcall-powerpc-macos.s avcall-powerpc-sysv4-macro.S \
+  avcall-powerpc64.c avcall-powerpc64-aix.s avcall-powerpc64-linux.S avcall-powerpc64-elfv2-linux.S \
+  avcall-s390.c avcall-s390-linux.s avcall-s390-macro.S \
+  avcall-s390x.c avcall-s390x-linux.s avcall-s390x-macro.S \
+  avcall-sparc.c avcall-sparc-linux.s avcall-sparc-macro.S \
+  avcall-sparc64.c avcall-sparc64-linux.s avcall-sparc64-macro.S \
+  avcall-x86_64.c avcall-x86_64-linux.s avcall-x86_64-macro.S avcall-x86_64-x32-linux.s \
+  avcall-x86_64-windows.c avcall-x86_64-windows.s avcall-x86_64-windows-macro.S \
+  avcall-libapi.c \
+  avcall-structcpy.c \
+  avcall-compat.c \
+  minitests.c minitests-c++.cc \
+  tests.c
+# List of distributed files generated by Makefile.maint.
+GENERATED_FILES = \
+  avcall.man \
+  avcall-i386-msvc.c
+# List of distributed files.
+DISTFILES = $(SOURCE_FILES) $(GENERATED_FILES)
+
+distdir : $(DISTFILES)
+	for file in $(DISTFILES); do \
+	  if test -f $$file; then dir='.'; else dir='$(srcdir)'; fi; \
+	  cp -p "$$dir/$$file" '$(distdir)'/$$file || exit 1; \
+	done
+
+
+force :

@@ -1,0 +1,79 @@
+Migration Guide
+===============
+
+When switching from vacall+trampoline to callback, you need to make the
+following changes to your code:
+
+       vacall+trampoline                       callback
+       -----------------                       --------
+
+                              -- Include files --
+
+#include "vacall/vacall.h"              #include "callback/callback.h"
+#include "trampoline/trampoline.h"
+
+                          -- Variable declarations --
+
+static void* trampvar;
+
+                           -- Callback declaration --
+                                
+static void                             static void
+mycallback (va_alist args)              mycallback (void* data, va_alist args)
+{                                       {
+  void* data = trampvar;                  ...
+  ...
+
+                              -- Initialization --
+
+vacall_function = &mycallback;
+
+                          -- Allocating a callback --
+
+void* trampoline =                      void* trampoline =
+  alloc_trampoline(                       alloc_callback(&mycallback,data);
+    (__TR_function)&vacall,
+    &trampvar,
+    data);
+
+                          -- Testing for a callback --
+
+if                                      if
+(is_trampoline(address)                 (is_callback(address)
+ && (trampoline_address(address)         && (callback_address(address)
+     == (__TR_function)&vacall)              == &mycallback)
+ && (trampoline_variable(address)       )
+     == &trampvar)
+)
+
+void* data = trampoline_data(address);  void* data = callback_data(address);
+
+                         -- Deallocating a callback --
+
+free_trampoline(address);               free_callback(address);
+
+                                -- Libraries --
+
+libvacall.a libtrampoline.a             libcallback.a
+
+
+================================================================================
+Copyright (C) 1995-1998 Bruno Haible
+
+This manual is free documentation.  It is dually licensed under the
+GNU FDL and the GNU GPL.  This means that you can redistribute this
+manual under either of these two licenses, at your choice.
+
+This manual is covered by the GNU FDL.  Permission is granted to copy,
+distribute and/or modify this document under the terms of the
+GNU Free Documentation License (FDL), either version 1.2 of the
+License, or (at your option) any later version published by the
+Free Software Foundation (FSF); with no Invariant Sections, with no
+Front-Cover Text, and with no Back-Cover Texts.
+A copy of the license is at <https://www.gnu.org/licenses/old-licenses/fdl-1.2>.
+
+This manual is covered by the GNU GPL.  You can redistribute it and/or
+modify it under the terms of the GNU General Public License (GPL), either
+version 2 of the License, or (at your option) any later version published
+by the Free Software Foundation (FSF).
+A copy of the license is at <https://www.gnu.org/licenses/old-licenses/gpl-2.0>.

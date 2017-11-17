@@ -1,0 +1,40 @@
+gcc -g -O2 -Wall -fvisibility=hidden -fPIC -g -I. -I../include -I../distorm/include   -c -o os_func.o os_func.c
+gcc -g -O2 -Wall -fvisibility=hidden -fPIC -g -I. -I../include -I../distorm/include   -c -o os_func_unix.o os_func_unix.c
+gcc -g -O2 -Wall -fvisibility=hidden -fPIC -g -I. -I../include -I../distorm/include -c -o printf_base.o printf_base.c -DPFB_NO_EXTERNAL_FUNC -DPFB_MSVC_FORMAT
+gcc -g -O2 -Wall -fvisibility=hidden -fPIC -g -I. -I../include -I../distorm/include   -c -o funchook.o funchook.c
+funchook.c: 在函数‘funchook_prepare_internal’中:
+funchook.c:314:5: 警告：提领类型双关的指针将破坏强重叠规则 [-Wstrict-aliasing]
+funchook.c:317:9: 警告：提领类型双关的指针将破坏强重叠规则 [-Wstrict-aliasing]
+gcc -g -O2 -Wall -fvisibility=hidden -fPIC -g -I. -I../include -I../distorm/include   -c -o funchook_io.o funchook_io.c
+gcc -g -O2 -Wall -fvisibility=hidden -fPIC -g -I. -I../include -I../distorm/include   -c -o funchook_x86.o funchook_x86.c
+gcc -g -O2 -Wall -fvisibility=hidden -fPIC -g -I. -I../include -I../distorm/include   -c -o funchook_unix.o funchook_unix.c
+gcc -g -O2 -Wall -fvisibility=hidden -fPIC -g -I. -I../include -I../distorm/include   -c -o mnemonics.o ../distorm/src/mnemonics.c
+gcc -g -O2 -Wall -fvisibility=hidden -fPIC -g -I. -I../include -I../distorm/include   -c -o wstring.o ../distorm/src/wstring.c
+gcc -g -O2 -Wall -fvisibility=hidden -fPIC -g -I. -I../include -I../distorm/include   -c -o textdefs.o ../distorm/src/textdefs.c
+gcc -g -O2 -Wall -fvisibility=hidden -fPIC -g -I. -I../include -I../distorm/include   -c -o prefix.o ../distorm/src/prefix.c
+gcc -g -O2 -Wall -fvisibility=hidden -fPIC -g -I. -I../include -I../distorm/include   -c -o operands.o ../distorm/src/operands.c
+gcc -g -O2 -Wall -fvisibility=hidden -fPIC -g -I. -I../include -I../distorm/include -c -o insts.o ../distorm/src/insts.c -Wno-missing-braces
+gcc -g -O2 -Wall -fvisibility=hidden -fPIC -g -I. -I../include -I../distorm/include   -c -o instructions.o ../distorm/src/instructions.c
+gcc -g -O2 -Wall -fvisibility=hidden -fPIC -g -I. -I../include -I../distorm/include   -c -o distorm.o ../distorm/src/distorm.c
+gcc -g -O2 -Wall -fvisibility=hidden -fPIC -g -I. -I../include -I../distorm/include   -c -o decoder.o ../distorm/src/decoder.c
+
+
+os_func.c  
+os_func_unix.c 
+printf_base.c 
+funchook.c 
+funchook_io.c 
+funchook_x86.c 
+funchook_unix.c 
+distorm/src/mnemonics.c 
+distorm/src/wstring.c 
+distorm/src/textdefs.c
+distorm/src/prefix.c
+distorm/src/operands.c
+distorm/src/insts.c
+distorm/src/instructions.c
+distorm/src/distorm.c
+distorm/src/decoder.c
+
+
+gcc -Ifunhook/include -Ifunhook/distorm/include -D_GNU_SOURCE -shared -o libfunchook.so funhook/src/os_func.c funhook/src/os_func_unix.c funhook/src/funchook_syscall.S funhook/src/printf_base.c funhook/src/funchook.c funhook/src/funchook_io.c funhook/src/funchook_x86.c funhook/src/funchook_unix.c funhook/distorm/src/mnemonics.c funhook/distorm/src/wstring.c funhook/distorm/src/textdefs.c funhook/distorm/src/prefix.c funhook/distorm/src/operands.c funhook/distorm/src/insts.c funhook/distorm/src/instructions.c funhook/distorm/src/distorm.c funhook/distorm/src/decoder.c -fPIC  -Wno-missing-braces -DPFB_NO_EXTERNAL_FUNC -DPFB_MSVC_FORMAT  

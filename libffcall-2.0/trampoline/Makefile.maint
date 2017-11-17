@@ -1,0 +1,18 @@
+# maintainer -*-Makefile-*-
+
+RM = rm -f
+
+# ==================== Easily regeneratable files ====================
+
+ROFF_MAN = groff -Tutf8 -mandoc
+
+all : trampoline.man
+
+trampoline.man : trampoline.3
+	$(ROFF_MAN) trampoline.3 > trampoline.man
+
+totally-clean : force
+	$(RM) trampoline.man
+
+
+force :

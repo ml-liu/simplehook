@@ -1,0 +1,205 @@
+# This is the developer's -*-Makefile-*-, not the user's makefile.
+# Do not use it unless you know exactly what you do!
+
+THISFILE = Makefile.devel
+RM = rm -f
+
+# ============ Rules that require cross-compilation tools ============
+
+GCC = gcc
+GCCFLAGS = -O2 -fomit-frame-pointer -fPIC
+CPP = $(GCC) -E
+CROSS_TOOL = cross
+
+precompiled : \
+  cache-sparc-macro.S cache-sparc64-macro.S \
+  cache-alpha-macro.S \
+  cache-hppa-macro.S cache-hppa64-macro.S \
+  cache-powerpc-linux-macro.S cache-powerpc-macos.s \
+  cache-powerpc64-elfv2-macro.S
+
+
+cache-sparc-linux.s : cache-sparc.c $(THISFILE)
+	$(CROSS_TOOL) sparc-linux gcc -V 3.1 $(GCCFLAGS) -D__sparc__ -S cache-sparc.c -o cache-sparc-linux.s
+
+cache-sparc-macro.S : cache-sparc-linux.s ../../common/asm-sparc.sh ../../common/noexecstack.h $(THISFILE)
+	(echo '#include "asm-sparc.h"' ; ../../common/asm-sparc.sh < cache-sparc-linux.s ; cat ../../common/noexecstack.h) > cache-sparc-macro.S
+
+cache-sparc64-linux.s : cache-sparc.c $(THISFILE)
+	$(CROSS_TOOL) sparc64-linux gcc -V 4.0.2 $(GCCFLAGS) -D__sparc64__ -S cache-sparc.c -o cache-sparc64-linux.s
+
+cache-sparc64-macro.S : cache-sparc64-linux.s ../../common/asm-sparc.sh ../../common/noexecstack.h $(THISFILE)
+	(echo '#include "asm-sparc.h"' ; ../../common/asm-sparc.sh < cache-sparc64-linux.s ; cat ../../common/noexecstack.h) > cache-sparc64-macro.S
+
+
+cache-alpha-linux.s : cache-alpha.c $(THISFILE)
+	$(CROSS_TOOL) alpha-linux gcc -V 4.0.2 $(GCCFLAGS) -D__alpha__ -S cache-alpha.c -o cache-alpha-linux.s
+
+cache-alpha-macro.S : cache-alpha-linux.s ../../common/asm-alpha.sh ../../common/noexecstack.h $(THISFILE)
+	(../../common/asm-alpha.sh < cache-alpha-linux.s ; cat ../../common/noexecstack.h) > cache-alpha-macro.S
+
+
+cache-hppa-linux.s : cache-hppa.c $(THISFILE)
+	$(CROSS_TOOL) hppa-linux gcc -V 3.1 $(GCCFLAGS) -D__hppa__ -S cache-hppa.c -o cache-hppa-linux.s
+
+cache-hppa-macro.S : cache-hppa-linux.s ../../common/asm-hppa.sh ../../common/noexecstack.h $(THISFILE)
+	(echo '#include "asm-hppa.h"' ; ../../common/asm-hppa.sh < cache-hppa-linux.s ; cat ../../common/noexecstack.h) > cache-hppa-macro.S
+
+
+cache-hppa64-linux.s : cache-hppa.c $(THISFILE)
+	$(CROSS_TOOL) hppa64-linux gcc -V 3.1 $(GCCFLAGS) -D__hppa64__ -S cache-hppa.c -o cache-hppa64-linux.s
+
+cache-hppa64-macro.S : cache-hppa64-linux.s ../../common/asm-hppa64.sh ../../common/noexecstack.h $(THISFILE)
+	(echo '#include "asm-hppa64.h"' ; ../../common/asm-hppa64.sh < cache-hppa64-linux.s ; cat ../../common/noexecstack.h) > cache-hppa64-macro.S
+
+
+cache-powerpc-linux.s : cache-powerpc.c $(THISFILE)
+	$(CROSS_TOOL) powerpc-linux gcc -V 3.3.6 -mno-power -mno-power2 -mno-powerpc $(GCCFLAGS) -D__powerpc__ -S cache-powerpc.c -o cache-powerpc-linux.s
+
+cache-powerpc-linux-macro.S : cache-powerpc-linux.s ../../common/asm-powerpc.sh ../../common/noexecstack.h $(THISFILE)
+	(../../common/asm-powerpc.sh < cache-powerpc-linux.s ; cat ../../common/noexecstack.h) > cache-powerpc-linux-macro.S
+
+cache-powerpc-macos.s : cache-powerpc.c $(THISFILE)
+	$(CROSS_TOOL) powerpc-darwin gcc -V 3.3.6 $(GCCFLAGS) -D__powerpc__ -S cache-powerpc.c -o cache-powerpc-macos.s
+
+
+cache-powerpc64-elfv2-linux.s : cache-powerpc64.c $(THISFILE)
+	$(CROSS_TOOL) powerpc64le-linux gcc-5.4.0 -mabi=elfv2 -mcpu=power4 -mlittle-endian $(GCCFLAGS) -D__powerpc64__ -S cache-powerpc64.c -o cache-powerpc64-elfv2-linux-le.s
+	$(CROSS_TOOL) powerpc64le-linux gcc-5.4.0 -mabi=elfv2 -mcpu=power4 -mbig-endian $(GCCFLAGS) -D__powerpc64__ -S cache-powerpc64.c -o cache-powerpc64-elfv2-linux-be.s
+	cmp cache-powerpc64-elfv2-linux-le.s cache-powerpc64-elfv2-linux-be.s > /dev/null
+	mv cache-powerpc64-elfv2-linux-le.s cache-powerpc64-elfv2-linux.s
+	$(RM) cache-powerpc64-elfv2-linux-be.s
+
+cache-powerpc64-elfv2-macro.S : cache-powerpc64-elfv2-linux.s ../../common/asm-powerpc.sh ../../common/noexecstack.h $(THISFILE)
+	(../../common/asm-powerpc.sh < cache-powerpc64-elfv2-linux.s ; cat ../../common/noexecstack.h) > cache-powerpc64-elfv2-macro.S
+
+
+# --------------- Older rules ---------------
+
+OLDGCCFLAGS = -O2 -fomit-frame-pointer
+ASPREFIX = /usr1/gnu/lib
+
+proto-precompiled : proto-i386.s proto-m68k.s proto-mips.s proto-mipsn32.s proto-mips64.s proto-sparc.s proto-sparc64.s proto-alpha.s proto-hppa.s proto-hppa64.s proto-arm.s proto-arm64.s proto-powerpc-aix.s proto-powerpc-sysv4.s proto-powerpc-macos.s proto-powerpc64-aix.s proto-powerpc64-elfv2.s proto-ia64.c proto-x86_64.c proto-x86_64-x32.s proto-s390.s proto-s390x.s
+
+proto-i386.s : proto.c
+	$(GCC) -V 2.7.2 -b i486-linuxaout $(OLDGCCFLAGS) -D__i386__ -S proto.c -o $@
+
+proto-m68k.s : proto.c
+	$(GCC) -V egcs-2.91.57 -b m68k-sun $(OLDGCCFLAGS) -D__m68k__ -S proto.c -o $@
+
+proto-mips.s : proto.c
+	$(GCC) -V 2.95.2 -b mips-sgi $(OLDGCCFLAGS) -D__mips__ -S proto.c -o $@ -mabicalls
+
+proto-mipsn32.s : proto.c
+	$(GCC) -V 2.95.2 -b mips-sgi-irix6 $(OLDGCCFLAGS) -D__mipsn32__ -S proto.c -o $@ -mabicalls
+
+proto-mips64.s : proto64.c
+	$(GCC) -V 2.95.2 -b mips-sgi -mips3 -mlong64 $(OLDGCCFLAGS) -D__mips64__ -S proto64.c -o $@ -mabicalls
+
+proto-sparc.s : proto.c
+	$(GCC) -V 2.95.2 -b sparc-sun $(OLDGCCFLAGS) -D__sparc__ -S proto.c -o $@
+
+proto-sparc64.s : proto64.c
+	sparc64-linux-gcc -V 2.95.2 -b sparc64-linux $(OLDGCCFLAGS) -D__sparc64__ -S proto64.c -o $@
+
+proto-alpha.s : proto64.c
+	$(GCC) -V 2.7.2 -b alpha-dec-osf $(OLDGCCFLAGS) -D__alpha__ -S proto64.c -o $@
+
+proto-hppa.s : proto.c
+	$(GCC) -V 2.6.3 -b hppa1.0-hpux $(OLDGCCFLAGS) -D__hppa__ -S proto.c -o $@
+
+proto-hppa64.s : proto64.c
+	$(CROSS_TOOL) hppa64-linux gcc -V 3.1 $(OLDGCCFLAGS) -D__hppa64__ -S proto64.c -o $@
+
+proto-arm.s : proto.c
+	$(CROSS_TOOL) arm-linux gcc -V 3.1 $(OLDGCCFLAGS) -fno-omit-frame-pointer -D__arm__ -S proto.c -o $@
+
+proto-arm64.s : proto64.c
+	$(CROSS_TOOL) aarch64-linux gcc-5.4.0 $(OLDGCCFLAGS) -D__arm64__ -S proto64.c -o $@
+
+proto-powerpc-aix.s : proto.c
+	$(GCC) -V 2.95.2 -b rs6000 -mno-power -mno-power2 -mno-powerpc -mnew-mnemonics $(OLDGCCFLAGS) -D__powerpc__ -S proto.c -o $@
+
+proto-powerpc-sysv4.s : proto.c
+	$(GCC) -V 2.95.2 -b ppc-linux -mno-power -mno-power2 -mno-powerpc $(OLDGCCFLAGS) -D__powerpc__ -S proto.c -o $@
+
+proto-powerpc-macos.s : proto.c
+	$(GCC) -V 3.3.2 -b powerpc-darwin $(OLDGCCFLAGS) -D__powerpc__ -S proto.c -o $@
+
+proto-powerpc64-aix.s : proto64.c
+	$(CROSS_TOOL) powerpc64-linux gcc $(OLDGCCFLAGS) -D__powerpc64__ -S proto64.c -o $@
+
+proto-powerpc64-elfv2.s : proto64.c
+	$(CROSS_TOOL) powerpc64le-linux gcc -mabi=elfv2 $(OLDGCCFLAGS) -D__powerpc64__ -S proto64.c -o $@
+
+proto-ia64.s : proto64.c
+	$(GCC) -V 2.9-ia64-000216 -b ia64-hp-linux $(OLDGCCFLAGS) -D__ia64__ -S proto64.c -o $@
+
+proto-x86_64.s : proto64.c
+	$(GCC) -V 3.2.2 -b x86_64-suse-linux $(OLDGCCFLAGS) -D__x86_64__ -S proto64.c -o $@
+
+proto-x86_64-x32.s : proto.c
+	$(CROSS_TOOL) x86_64-linux gcc-5.4.0 -mx32 $(OLDGCCFLAGS) -fno-asynchronous-unwind-tables -D__x86_64__ -D__x86_64_x32__ -S proto.c -o $@
+
+proto-s390.s : proto.c
+	$(CROSS_TOOL) s390-linux gcc -V 3.1 $(OLDGCCFLAGS) -D__s390__ -S proto.c -o $@
+
+proto-s390x.s : proto64.c
+	$(CROSS_TOOL) s390x-linux gcc-5.4.0 $(OLDGCCFLAGS) -D__s390x__ -S proto64.c -o $@
+
+tramp-i386.o : tramp-i386.s
+	$(ASPREFIX)/i486-linux/bin/as tramp-i386.s -o $@
+
+tramp-m68k.o : tramp-m68k.s
+	$(ASPREFIX)/m68k-linux/bin/as tramp-m68k.s -o $@
+
+tramp-mips.o : tramp-mips.s
+	$(ASPREFIX)/mips-linux/bin/as tramp-mips.s -o $@
+
+tramp-mips64.o : tramp-mips64.s
+	$(ASPREFIX)/mips-linux/bin/as -mips64 -mabi=64 tramp-mips64.s -o $@
+
+tramp-sparc.o : tramp-sparc.s
+	$(ASPREFIX)/sparc-sun/bin/as tramp-sparc.s -o $@
+
+tramp-sparc64.o : tramp-sparc64.s
+	$(ASPREFIX)/sparc64-linux/bin/as tramp-sparc64.s -o $@
+
+tramp-alpha.o : tramp-alpha.s
+	$(ASPREFIX)/alpha-linux/bin/as tramp-alpha.s -o $@
+
+tramp-hppa.o : tramp-hppa.s
+	$(ASPREFIX)/hppa1.0-hpux/bin/as tramp-hppa.s -o $@
+
+tramp-hppa64.o : tramp-hppa64.s
+	$(CROSS_TOOL) hppa64-linux as tramp-hppa64.s -o $@
+
+tramp-arm.o : tramp-arm.s
+	$(CROSS_TOOL) arm-linux as tramp-arm.s -o $@
+
+tramp-arm64.o : tramp-arm64.s
+	$(CROSS_TOOL) aarch64-linux as tramp-arm64.s -o $@
+
+tramp-powerpc-old.o : tramp-powerpc-old.s
+	$(ASPREFIX)/rs6000/bin/as tramp-powerpc-old.s -o $@
+
+tramp-powerpc-sysv4.o : tramp-powerpc-sysv4.s
+	$(ASPREFIX)/ppc-linux/bin/as tramp-powerpc-sysv4.s -o $@
+
+tramp-powerpc64-elfv2.o : tramp-powerpc64-elfv2.s
+	$(CROSS_TOOL) powerpc64le-linux as tramp-powerpc64-elfv2.s -o $@
+
+tramp-ia64.o : tramp-ia64.s
+	/nue/usr/ia64-hp-linux/bin/as tramp-ia64.s -o $@
+
+tramp-x86_64.o : tramp-x86_64.s
+	$(ASPREFIX)/x86_64-linux/bin/as tramp-x86_64.s -o $@
+
+tramp-x86_64-x32.o : tramp-x86_64-x32.s
+	$(CROSS_TOOL) x86_64-linux as tramp-x86_64-x32.s -o $@
+
+tramp-s390.o : tramp-s390.s
+	$(CROSS_TOOL) s390-linux as tramp-s390.s -o $@
+
+tramp-s390x.o : tramp-s390x.s
+	$(CROSS_TOOL) s390x-linux as tramp-s390x.s -o $@

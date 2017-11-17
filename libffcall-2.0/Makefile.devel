@@ -1,0 +1,29 @@
+# This is the developer's -*-Makefile-*-, not the user's makefile.
+# Do not use it unless you know exactly what you do!
+
+# ============ Rules that require cross-compilation tools ============
+
+precompiled : force
+	cd avcall && $(MAKE) -f Makefile.devel precompiled
+	cd vacall && $(MAKE) -f Makefile.devel precompiled
+	cd trampoline && $(MAKE) -f Makefile.devel precompiled
+	cd callback/vacall_r \
+	  && $(MAKE) -f Makefile.devel precompiled
+	cd callback/trampoline_r \
+	  && $(MAKE) -f Makefile.maint copied-files \
+	  && $(MAKE) -f Makefile.devel precompiled
+
+# ==================== Targets for testing ====================
+
+COMPILERS="cc -O" "gcc -freg-struct-return" "gcc -fpcc-struct-return"
+
+multibuild : force
+	for compiler in $(COMPILERS) ; do \
+	  dir=build-`echo $$compiler | sed -e 's, ,,g' -e 's,/,_,g'`; \
+	  mkdir $$dir; cd $$dir; \
+	  CC="$$compiler" ../configure --srcdir=.. && make && make check; \
+	  cd ..; \
+	done
+
+
+force :

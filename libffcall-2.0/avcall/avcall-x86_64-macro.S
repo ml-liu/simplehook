@@ -1,0 +1,650 @@
+#include "asm-x86_64.h"
+	TEXT()
+	P2ALIGN(4,15)
+GLOBL(C(avcall_call))
+	DECLARE_FUNCTION(avcall_call)
+FUNBEGIN(avcall_call)
+L(FB2):
+	INSN1(push,q	,R(rbp))
+L(CFI0):
+	INSN2(mov,q	,R(rsp), R(rbp))
+L(CFI1):
+	INSN1(push,q	,R(r13))
+L(CFI2):
+	INSN1(push,q	,R(r12))
+L(CFI3):
+	INSN1(push,q	,R(rbx))
+L(CFI4):
+	INSN2(mov,q	,R(rdi), R(rbx))
+	INSN2(lea,q	,X8 MEM_DISP(rbx,128), R(rdx))
+	INSN2(sub,q	,NUM(2072), R(rsp))
+L(CFI5):
+	INSN2(mov,q	,X8 MEM_DISP(rdi,40), R(rax))
+	INSN2(mov,q	,X8 MEM_DISP(rdi,48), R(r8))
+	INSN2(lea,q	,X8 MEM_DISP(rsp,15), R(rsi))
+	INSN2(sub,q	,R(r8), R(rax))
+	INSN2(and,q	,NUM(-16), R(rsi))
+	INSN2(mov,q	,R(rax), R(rdi))
+	INSN2(mov,q	,X8 MEM_DISP(rbx,120), R(rax))
+	INSN2(shr,q	,NUM(3), R(rdi))
+	INSN2(sub,q	,R(rdx), R(rax))
+	INSN2(mov,q	,R(rax), R(r9))
+	INSN2(shr,q	,NUM(3), R(r9))
+	INSN2(test,l	,R(edi), R(edi))
+	INSN1(jle,_	,L(2))
+	INSN2(xor,l	,R(ecx), R(ecx))
+	INSN2(xor,l	,R(edx), R(edx))
+	P2ALIGN(4,7)
+L(4):
+	INSN2(mov,q	,X8 MEM_INDEX(rdx,r8), R(rax))
+	INSN1(inc,l	,R(ecx))
+	INSN2(mov,q	,R(rax),X8 MEM_INDEX(rsi,rdx))
+	INSN2(add,q	,NUM(8), R(rdx))
+	INSN2(cmp,l	,R(ecx), R(edi))
+	INSN1(jne,_	,L(4))
+L(2):
+	INSN2(mov,l	,X4 MEM_DISP(rbx,24), R(eax))
+	INSN2(cmp,l	,NUM(13), R(eax))
+	INSN1(je,_	,L(127))
+	INSN2(cmp,l	,NUM(14), R(eax))
+	INSN1(je,_	,L(128))
+	INSN2(cmp,l	,NUM(7), R(r9d))
+	INSN2(mov,q	,X8 MEM_DISP(rbx,8), R(r12))
+	INSN1(jle,_	,L(58))
+	INSN2(movlp,d	,X8 MEM_DISP(rbx,184), R(xmm10))
+L(60):
+	INSN2(mov,q	,X8 MEM_DISP(rbx,176), R(r9))
+L(63):
+	INSN2(mov,q	,X8 MEM_DISP(rbx,168), R(r11))
+L(66):
+	INSN2(mov,q	,X8 MEM_DISP(rbx,160), R(r10))
+L(69):
+	INSN2(movlp,d	,X8 MEM_DISP(rbx,152), R(xmm8))
+L(72):
+	INSN2(mov,q	,X8 MEM_DISP(rbx,144), R(rax))
+L(75):
+	INSN2(mov,q	,X8 MEM_DISP(rbx,136), R(r8))
+L(78):
+	INSN2(movlp,d	,X8 MEM_DISP(rbx,128), R(xmm9))
+L(81):
+	INSN2(mov,q	,X8 MEM_DISP(rbx,88), R(rdx))
+	INSN2(mov,q	,X8 MEM_DISP(rbx,96), R(rcx))
+	INSN2S(movs,d	,R(xmm10), R(xmm7))
+	INSN2(mov,q	,X8 MEM_DISP(rbx,80), R(rsi))
+	INSN2(mov,q	,X8 MEM_DISP(rbx,72), R(rdi))
+	INSN2S(movs,d	,R(xmm8), R(xmm3))
+	INSN2(mov,q	,R(r9),X8 MEM_DISP(rbp,-32))
+	INSN2S(movs,d	,R(xmm9), R(xmm0))
+	INSN2(movlp,d	,X8 MEM_DISP(rbp,-32), R(xmm6))
+	INSN2(mov,q	,R(r11),X8 MEM_DISP(rbp,-32))
+	INSN2(movlp,d	,X8 MEM_DISP(rbp,-32), R(xmm5))
+	INSN2(mov,q	,R(r10),X8 MEM_DISP(rbp,-32))
+	INSN2(movlp,d	,X8 MEM_DISP(rbp,-32), R(xmm4))
+	INSN2(mov,q	,R(rax),X8 MEM_DISP(rbp,-32))
+	INSN2(mov,l	,NUM(8), R(eax))
+	INSN2(movlp,d	,X8 MEM_DISP(rbp,-32), R(xmm2))
+	INSN2(mov,q	,R(r8),X8 MEM_DISP(rbp,-32))
+	INSN2(movlp,d	,X8 MEM_DISP(rbp,-32), R(xmm1))
+	INSN2(mov,q	,X8 MEM_DISP(rbx,112), R(r9))
+	INSN2(mov,q	,X8 MEM_DISP(rbx,104), R(r8))
+	INSN1(call,_	,INDIR(R(r12)))
+	INSN2(mov,q	,R(rax), R(r8))
+	INSN2(mov,l	,X4 MEM_DISP(rbx,24), R(eax))
+	INSN2(mov,q	,R(rdx), R(r9))
+	INSN2(cmp,l	,NUM(1), R(eax))
+	INSN1(je,_	,L(31))
+	INSN2(test,l	,R(eax), R(eax))
+	INSN1(je,_	,L(125))
+	INSN2(cmp,l	,NUM(2), R(eax))
+	INSN1(je,_	,L(122))
+	INSN2(cmp,l	,NUM(3), R(eax))
+	P2ALIGN(4,5)
+	INSN1(je,_	,L(122))
+	INSN2(cmp,l	,NUM(4), R(eax))
+	P2ALIGN(4,5)
+	INSN1(je,_	,L(122))
+	INSN2(cmp,l	,NUM(5), R(eax))
+	P2ALIGN(4,5)
+	INSN1(je,_	,L(123))
+	INSN2(cmp,l	,NUM(6), R(eax))
+	P2ALIGN(4,5)
+	INSN1(je,_	,L(123))
+	INSN2(cmp,l	,NUM(7), R(eax))
+	P2ALIGN(4,5)
+	INSN1(je,_	,L(124))
+	INSN2(cmp,l	,NUM(8), R(eax))
+	P2ALIGN(4,5)
+	INSN1(je,_	,L(124))
+	INSN2(cmp,l	,NUM(9), R(eax))
+	P2ALIGN(4,5)
+	INSN1(je,_	,L(125))
+	INSN2(cmp,l	,NUM(10), R(eax))
+	P2ALIGN(4,5)
+	INSN1(je,_	,L(125))
+	INSN2(cmp,l	,NUM(11), R(eax))
+	P2ALIGN(4,5)
+	INSN1(je,_	,L(125))
+	INSN2(cmp,l	,NUM(12), R(eax))
+	P2ALIGN(4,5)
+	INSN1(je,_	,L(125))
+	INSN2(cmp,l	,NUM(15), R(eax))
+	P2ALIGN(4,5)
+	INSN1(je,_	,L(125))
+	INSN2(cmp,l	,NUM(16), R(eax))
+	P2ALIGN(4,5)
+	INSN1(jne,_	,L(31))
+	INSN2(test,b	,NUM(2),X1 MEM_DISP(rbx,1))
+	P2ALIGN(4,5)
+	INSN1(je,_	,L(31))
+	INSN2(mov,q	,X8 MEM_DISP(rbx,32), R(rdx))
+	INSN2(lea,q	,X8 MEM_DISP(rdx,-1), R(rax))
+	INSN2(cmp,q	,NUM(15), R(rax))
+	INSN1(ja,_	,L(31))
+	INSN2(mov,q	,X8 MEM_DISP(rbx,16), R(rax))
+	INSN2(mov,q	,R(rax), R(r10))
+	INSN2(mov,q	,R(rax), R(rdi))
+	INSN2(and,l	,NUM(7), R(edi))
+	INSN2(and,q	,NUM(-8), R(r10))
+	INSN2(cmp,q	,NUM(8), R(rdx))
+	INSN2(lea,q	,X8 MEM_INDEX(rdx,rdi), R(r11))
+	INSN1(ja,_	,L(112))
+	INSN2(cmp,q	,NUM(8), R(r11))
+	INSN1(ja,_	,L(114))
+	INSN2(lea,l	,X4 MEM_DISP_SHINDEX0(-1,r11,8), R(ecx))
+	INSN2(mov,q	,X8 MEM(r10), R(rsi))
+	INSN2(sal,l	,NUM(3), R(edi))
+	INSN2(mov,l	,NUM(2), R(edx))
+	INSN2(mov,l	,NUM(1), R(eax))
+	INSN2(sal,q	,R(cl), R(rdx))
+	INSN2(mov,l	,R(edi), R(ecx))
+	INSN2(sal,q	,R(cl), R(rax))
+	INSN2(sal,q	,R(cl), R(r8))
+	INSN2(xor,q	,R(rsi), R(r8))
+	INSN2(sub,q	,R(rax), R(rdx))
+	INSN2(and,q	,R(r8), R(rdx))
+	INSN2(xor,q	,R(rdx), R(rsi))
+	INSN2(mov,q	,R(rsi),X8 MEM(r10))
+L(31):
+	INSN2(lea,q	,X8 MEM_DISP(rbp,-24), R(rsp))
+	INSN2(xor,l	,R(eax), R(eax))
+	INSN1(pop,q	,R(rbx))
+	INSN1(pop,q	,R(r12))
+	INSN1(pop,q	,R(r13))
+	leave
+	ret
+L(58):
+	INSN1(je,_	,L(129))
+	INSN2(cmp,l	,NUM(5), R(r9d))
+	INSN1(jle,_	,L(64))
+	INSN2(xor,l	,R(r9d), R(r9d))
+	INSN2(mov,q	,R(r9),X8 MEM_DISP(rbp,-32))
+	INSN2(movlp,d	,X8 MEM_DISP(rbp,-32), R(xmm10))
+	P2ALIGN(4,3)
+	INSN1(jmp,_	,L(63))
+L(127):
+	INSN2(cmp,l	,NUM(7), R(r9d))
+	INSN2(mov,q	,X8 MEM_DISP(rbx,16), R(r13))
+	INSN2(mov,q	,X8 MEM_DISP(rbx,8), R(r12))
+	INSN1(jle,_	,L(7))
+	INSN2(movlp,d	,X8 MEM_DISP(rbx,184), R(xmm10))
+L(9):
+	INSN2(mov,q	,X8 MEM_DISP(rbx,176), R(r9))
+L(12):
+	INSN2(mov,q	,X8 MEM_DISP(rbx,168), R(r11))
+L(15):
+	INSN2(mov,q	,X8 MEM_DISP(rbx,160), R(r10))
+L(18):
+	INSN2(movlp,d	,X8 MEM_DISP(rbx,152), R(xmm8))
+L(21):
+	INSN2(mov,q	,X8 MEM_DISP(rbx,144), R(rax))
+L(24):
+	INSN2(mov,q	,X8 MEM_DISP(rbx,136), R(r8))
+L(27):
+	INSN2(movlp,d	,X8 MEM_DISP(rbx,128), R(xmm9))
+L(30):
+	INSN2(mov,q	,X8 MEM_DISP(rbx,96), R(rcx))
+	INSN2(mov,q	,X8 MEM_DISP(rbx,88), R(rdx))
+	INSN2S(movs,d	,R(xmm10), R(xmm7))
+	INSN2(mov,q	,X8 MEM_DISP(rbx,80), R(rsi))
+	INSN2(mov,q	,X8 MEM_DISP(rbx,72), R(rdi))
+	INSN2S(movs,d	,R(xmm8), R(xmm3))
+	INSN2(mov,q	,R(r9),X8 MEM_DISP(rbp,-32))
+	INSN2S(movs,d	,R(xmm9), R(xmm0))
+	INSN2(movlp,d	,X8 MEM_DISP(rbp,-32), R(xmm6))
+	INSN2(mov,q	,R(r11),X8 MEM_DISP(rbp,-32))
+	INSN2(movlp,d	,X8 MEM_DISP(rbp,-32), R(xmm5))
+	INSN2(mov,q	,R(r10),X8 MEM_DISP(rbp,-32))
+	INSN2(movlp,d	,X8 MEM_DISP(rbp,-32), R(xmm4))
+	INSN2(mov,q	,R(rax),X8 MEM_DISP(rbp,-32))
+	INSN2(mov,l	,NUM(8), R(eax))
+	INSN2(movlp,d	,X8 MEM_DISP(rbp,-32), R(xmm2))
+	INSN2(mov,q	,R(r8),X8 MEM_DISP(rbp,-32))
+	INSN2(movlp,d	,X8 MEM_DISP(rbp,-32), R(xmm1))
+	INSN2(mov,q	,X8 MEM_DISP(rbx,112), R(r9))
+	INSN2(mov,q	,X8 MEM_DISP(rbx,104), R(r8))
+	INSN1(call,_	,INDIR(R(r12)))
+	INSN2S(movs,s	,R(xmm0),X4 MEM(r13))
+	INSN2(lea,q	,X8 MEM_DISP(rbp,-24), R(rsp))
+	INSN2(xor,l	,R(eax), R(eax))
+	INSN1(pop,q	,R(rbx))
+	INSN1(pop,q	,R(r12))
+	INSN1(pop,q	,R(r13))
+	leave
+	ret
+L(125):
+	INSN2(mov,q	,X8 MEM_DISP(rbx,16), R(rax))
+	INSN2(mov,q	,R(r8),X8 MEM(rax))
+	INSN2(lea,q	,X8 MEM_DISP(rbp,-24), R(rsp))
+	INSN2(xor,l	,R(eax), R(eax))
+	INSN1(pop,q	,R(rbx))
+	INSN1(pop,q	,R(r12))
+	INSN1(pop,q	,R(r13))
+	leave
+	ret
+L(128):
+	INSN2(cmp,l	,NUM(7), R(r9d))
+	INSN2(mov,q	,X8 MEM_DISP(rbx,16), R(r13))
+	INSN2(mov,q	,X8 MEM_DISP(rbx,8), R(r12))
+	INSN1(jle,_	,L(34))
+	INSN2(movlp,d	,X8 MEM_DISP(rbx,184), R(xmm10))
+L(36):
+	INSN2(mov,q	,X8 MEM_DISP(rbx,176), R(r10))
+L(39):
+	INSN2(mov,q	,X8 MEM_DISP(rbx,168), R(r11))
+L(42):
+	INSN2(mov,q	,X8 MEM_DISP(rbx,160), R(r9))
+L(45):
+	INSN2(movlp,d	,X8 MEM_DISP(rbx,152), R(xmm8))
+L(48):
+	INSN2(mov,q	,X8 MEM_DISP(rbx,144), R(rax))
+L(51):
+	INSN2(mov,q	,X8 MEM_DISP(rbx,136), R(r8))
+L(54):
+	INSN2(movlp,d	,X8 MEM_DISP(rbx,128), R(xmm9))
+L(57):
+	INSN2(mov,q	,X8 MEM_DISP(rbx,96), R(rcx))
+	INSN2(mov,q	,X8 MEM_DISP(rbx,88), R(rdx))
+	INSN2S(movs,d	,R(xmm10), R(xmm7))
+	INSN2(mov,q	,X8 MEM_DISP(rbx,80), R(rsi))
+	INSN2(mov,q	,X8 MEM_DISP(rbx,72), R(rdi))
+	INSN2S(movs,d	,R(xmm8), R(xmm3))
+	INSN2(mov,q	,R(r10),X8 MEM_DISP(rbp,-32))
+	INSN2S(movs,d	,R(xmm9), R(xmm0))
+	INSN2(movlp,d	,X8 MEM_DISP(rbp,-32), R(xmm6))
+	INSN2(mov,q	,R(r11),X8 MEM_DISP(rbp,-32))
+	INSN2(movlp,d	,X8 MEM_DISP(rbp,-32), R(xmm5))
+	INSN2(mov,q	,R(r9),X8 MEM_DISP(rbp,-32))
+	INSN2(movlp,d	,X8 MEM_DISP(rbp,-32), R(xmm4))
+	INSN2(mov,q	,R(rax),X8 MEM_DISP(rbp,-32))
+	INSN2(mov,l	,NUM(8), R(eax))
+	INSN2(movlp,d	,X8 MEM_DISP(rbp,-32), R(xmm2))
+	INSN2(mov,q	,R(r8),X8 MEM_DISP(rbp,-32))
+	INSN2(movlp,d	,X8 MEM_DISP(rbp,-32), R(xmm1))
+	INSN2(mov,q	,X8 MEM_DISP(rbx,112), R(r9))
+	INSN2(mov,q	,X8 MEM_DISP(rbx,104), R(r8))
+	INSN1(call,_	,INDIR(R(r12)))
+	INSN2S(movs,d	,R(xmm0),X8 MEM(r13))
+	INSN2(lea,q	,X8 MEM_DISP(rbp,-24), R(rsp))
+	INSN2(xor,l	,R(eax), R(eax))
+	INSN1(pop,q	,R(rbx))
+	INSN1(pop,q	,R(r12))
+	INSN1(pop,q	,R(r13))
+	leave
+	ret
+L(7):
+	INSN1(jne,_	,L(10))
+	INSN2(xorp,d	,R(xmm10), R(xmm10))
+	INSN1(jmp,_	,L(9))
+L(129):
+	INSN2(xorp,d	,R(xmm10), R(xmm10))
+	P2ALIGN(4,7)
+	INSN1(jmp,_	,L(60))
+L(34):
+	P2ALIGN(4,7)
+	INSN1(jne,_	,L(37))
+	INSN2(xorp,d	,R(xmm10), R(xmm10))
+	P2ALIGN(4,7)
+	INSN1(jmp,_	,L(36))
+L(122):
+	INSN2(mov,q	,X8 MEM_DISP(rbx,16), R(rax))
+	INSN2(mov,b	,R(r8b),X1 MEM(rax))
+	INSN2(lea,q	,X8 MEM_DISP(rbp,-24), R(rsp))
+	INSN2(xor,l	,R(eax), R(eax))
+	INSN1(pop,q	,R(rbx))
+	INSN1(pop,q	,R(r12))
+	INSN1(pop,q	,R(r13))
+	leave
+	ret
+L(10):
+	INSN2(cmp,l	,NUM(5), R(r9d))
+	INSN1(jg,_	,L(130))
+	INSN1(jne,_	,L(16))
+	INSN2(xor,l	,R(r9d), R(r9d))
+	INSN2(mov,q	,R(r9),X8 MEM_DISP(rbp,-32))
+	INSN2(mov,q	,R(r9), R(r11))
+	INSN2(movlp,d	,X8 MEM_DISP(rbp,-32), R(xmm10))
+	INSN1(jmp,_	,L(15))
+L(64):
+	P2ALIGN(4,3)
+	INSN1(je,_	,L(131))
+	INSN2(cmp,l	,NUM(3), R(r9d))
+	INSN1(jle,_	,L(70))
+	INSN2(xor,l	,R(r9d), R(r9d))
+	INSN2(mov,q	,R(r9),X8 MEM_DISP(rbp,-32))
+	INSN2(mov,q	,R(r9), R(r10))
+	INSN2(mov,q	,R(r9), R(r11))
+	INSN2(movlp,d	,X8 MEM_DISP(rbp,-32), R(xmm10))
+	INSN1(jmp,_	,L(69))
+L(37):
+	INSN2(cmp,l	,NUM(5), R(r9d))
+	INSN1(jg,_	,L(132))
+	INSN1(jne,_	,L(43))
+	INSN2(xor,l	,R(r10d), R(r10d))
+	INSN2(mov,q	,R(r10),X8 MEM_DISP(rbp,-32))
+	INSN2(mov,q	,R(r10), R(r11))
+	INSN2(movlp,d	,X8 MEM_DISP(rbp,-32), R(xmm10))
+	INSN1(jmp,_	,L(42))
+L(130):
+	INSN2(xor,l	,R(r9d), R(r9d))
+	INSN2(mov,q	,R(r9),X8 MEM_DISP(rbp,-32))
+	INSN2(movlp,d	,X8 MEM_DISP(rbp,-32), R(xmm10))
+	INSN1(jmp,_	,L(12))
+L(131):
+	INSN2(xor,l	,R(r9d), R(r9d))
+	INSN2(mov,q	,R(r9),X8 MEM_DISP(rbp,-32))
+	INSN2(mov,q	,R(r9), R(r11))
+	INSN2(movlp,d	,X8 MEM_DISP(rbp,-32), R(xmm10))
+	INSN1(jmp,_	,L(66))
+L(132):
+	INSN2(xor,l	,R(r10d), R(r10d))
+	INSN2(mov,q	,R(r10),X8 MEM_DISP(rbp,-32))
+	INSN2(movlp,d	,X8 MEM_DISP(rbp,-32), R(xmm10))
+	INSN1(jmp,_	,L(39))
+L(123):
+	INSN2(mov,q	,X8 MEM_DISP(rbx,16), R(rax))
+	INSN2(mov,w	,R(r8w),X2 MEM(rax))
+	INSN1(jmp,_	,L(31))
+L(124):
+	INSN2(mov,q	,X8 MEM_DISP(rbx,16), R(rax))
+	INSN2(mov,l	,R(r8d),X4 MEM(rax))
+	INSN1(jmp,_	,L(31))
+L(16):
+	INSN2(cmp,l	,NUM(3), R(r9d))
+	INSN1(jle,_	,L(19))
+	INSN2(xor,l	,R(r9d), R(r9d))
+	INSN2(mov,q	,R(r9),X8 MEM_DISP(rbp,-32))
+	INSN2(mov,q	,R(r9), R(r10))
+	INSN2(mov,q	,R(r9), R(r11))
+	INSN2(movlp,d	,X8 MEM_DISP(rbp,-32), R(xmm10))
+	INSN1(jmp,_	,L(18))
+L(70):
+	INSN1(jne,_	,L(73))
+	INSN2(xor,l	,R(r9d), R(r9d))
+	INSN2(mov,q	,R(r9),X8 MEM_DISP(rbp,-32))
+	INSN2(mov,q	,R(r9), R(r10))
+	INSN2(mov,q	,R(r9), R(r11))
+	INSN2(movlp,d	,X8 MEM_DISP(rbp,-32), R(xmm10))
+	INSN2S(movs,d	,R(xmm10), R(xmm8))
+	INSN1(jmp,_	,L(72))
+L(43):
+	INSN2(cmp,l	,NUM(3), R(r9d))
+	INSN1(jle,_	,L(46))
+	INSN2(xor,l	,R(r10d), R(r10d))
+	INSN2(mov,q	,R(r10),X8 MEM_DISP(rbp,-32))
+	INSN2(mov,q	,R(r10), R(r9))
+	INSN2(mov,q	,R(r10), R(r11))
+	INSN2(movlp,d	,X8 MEM_DISP(rbp,-32), R(xmm10))
+	INSN1(jmp,_	,L(45))
+L(19):
+	INSN1(jne,_	,L(22))
+	INSN2(xor,l	,R(r9d), R(r9d))
+	INSN2(mov,q	,R(r9),X8 MEM_DISP(rbp,-32))
+	INSN2(mov,q	,R(r9), R(r10))
+	INSN2(mov,q	,R(r9), R(r11))
+	INSN2(movlp,d	,X8 MEM_DISP(rbp,-32), R(xmm10))
+	INSN2S(movs,d	,R(xmm10), R(xmm8))
+	INSN1(jmp,_	,L(21))
+L(73):
+	INSN2(cmp,l	,NUM(1), R(r9d))
+	INSN1(jle,_	,L(76))
+	INSN2(xor,l	,R(r9d), R(r9d))
+	INSN2(mov,q	,R(r9),X8 MEM_DISP(rbp,-32))
+	INSN2(mov,q	,R(r9), R(r10))
+	INSN2(mov,q	,R(r9), R(r11))
+	INSN2(movlp,d	,X8 MEM_DISP(rbp,-32), R(xmm10))
+	INSN2(mov,q	,R(r9), R(rax))
+	INSN2S(movs,d	,R(xmm10), R(xmm8))
+	INSN1(jmp,_	,L(75))
+L(46):
+	INSN1(jne,_	,L(49))
+	INSN2(xor,l	,R(r10d), R(r10d))
+	INSN2(mov,q	,R(r10),X8 MEM_DISP(rbp,-32))
+	INSN2(mov,q	,R(r10), R(r9))
+	INSN2(mov,q	,R(r10), R(r11))
+	INSN2(movlp,d	,X8 MEM_DISP(rbp,-32), R(xmm10))
+	INSN2S(movs,d	,R(xmm10), R(xmm8))
+	INSN1(jmp,_	,L(48))
+L(22):
+	INSN2(cmp,l	,NUM(1), R(r9d))
+	INSN1(jle,_	,L(25))
+	INSN2(xor,l	,R(r9d), R(r9d))
+	INSN2(mov,q	,R(r9),X8 MEM_DISP(rbp,-32))
+	INSN2(mov,q	,R(r9), R(r10))
+	INSN2(mov,q	,R(r9), R(r11))
+	INSN2(movlp,d	,X8 MEM_DISP(rbp,-32), R(xmm10))
+	INSN2(mov,q	,R(r9), R(rax))
+	INSN2S(movs,d	,R(xmm10), R(xmm8))
+	INSN1(jmp,_	,L(24))
+L(49):
+	INSN2(cmp,l	,NUM(1), R(r9d))
+	INSN1(jle,_	,L(52))
+	INSN2(xor,l	,R(r10d), R(r10d))
+	INSN2(mov,q	,R(r10),X8 MEM_DISP(rbp,-32))
+	INSN2(mov,q	,R(r10), R(r9))
+	INSN2(mov,q	,R(r10), R(r11))
+	INSN2(movlp,d	,X8 MEM_DISP(rbp,-32), R(xmm10))
+	INSN2(mov,q	,R(r10), R(rax))
+	INSN2S(movs,d	,R(xmm10), R(xmm8))
+	INSN1(jmp,_	,L(51))
+L(76):
+	INSN1(jne,_	,L(133))
+	INSN2(xor,l	,R(r9d), R(r9d))
+	INSN2(mov,q	,R(r9),X8 MEM_DISP(rbp,-32))
+	INSN2(mov,q	,R(r9), R(r10))
+	INSN2(mov,q	,R(r9), R(r11))
+	INSN2(movlp,d	,X8 MEM_DISP(rbp,-32), R(xmm10))
+	INSN2(mov,q	,R(r9), R(rax))
+	INSN2(mov,q	,R(r9), R(r8))
+	INSN2S(movs,d	,R(xmm10), R(xmm8))
+	INSN1(jmp,_	,L(78))
+L(25):
+	INSN1(jne,_	,L(134))
+	INSN2(xor,l	,R(r9d), R(r9d))
+	INSN2(mov,q	,R(r9),X8 MEM_DISP(rbp,-32))
+	INSN2(mov,q	,R(r9), R(r10))
+	INSN2(mov,q	,R(r9), R(r11))
+	INSN2(movlp,d	,X8 MEM_DISP(rbp,-32), R(xmm10))
+	INSN2(mov,q	,R(r9), R(rax))
+	INSN2(mov,q	,R(r9), R(r8))
+	INSN2S(movs,d	,R(xmm10), R(xmm8))
+	INSN1(jmp,_	,L(27))
+L(112):
+	INSN2(lea,q	,X8 MEM_DISP_SHINDEX0(0,rdi,8), R(r12))
+	INSN2(mov,q	,X8 MEM(r10), R(rsi))
+	INSN2(mov,q	,R(r8), R(rax))
+	INSN2(mov,q	,NUM(-1), R(rdx))
+	INSN2(mov,l	,R(r12d), R(ecx))
+	INSN2(sal,q	,R(cl), R(rax))
+	INSN2(sal,q	,R(cl), R(rdx))
+	INSN2(xor,q	,R(rsi), R(rax))
+	INSN2(and,q	,R(rax), R(rdx))
+	INSN2(xor,q	,R(rdx), R(rsi))
+	INSN2(cmp,q	,NUM(16), R(r11))
+	INSN2(mov,q	,R(rsi),X8 MEM(r10))
+	INSN1(ja,_	,L(116))
+	INSN2(lea,q	,X8 MEM_DISP_SHINDEX0(0,rdi,4), R(rax))
+	INSN2(lea,l	,X4 MEM_DISP_SHINDEX0(-65,r11,8), R(edx))
+	INSN2(mov,l	,NUM(32), R(edi))
+	INSN2(mov,q	,X8 MEM_DISP(r10,8), R(rsi))
+	INSN2(sub,l	,R(eax), R(edi))
+	INSN2(mov,l	,R(edx), R(ecx))
+	INSN2(mov,l	,NUM(2), R(eax))
+	INSN2(sal,q	,R(cl), R(rax))
+	INSN2(mov,l	,R(edi), R(ecx))
+	INSN2(sar,q	,R(cl), R(r8))
+	INSN1(dec,q	,R(rax))
+	INSN2(sar,q	,R(cl), R(r8))
+	INSN2(mov,l	,R(r12d), R(ecx))
+	INSN2(sal,q	,R(cl), R(r9))
+	INSN2(or,q	,R(r9), R(r8))
+	INSN2(xor,q	,R(rsi), R(r8))
+	INSN2(and,q	,R(r8), R(rax))
+	INSN2(xor,q	,R(rax), R(rsi))
+	INSN2(mov,q	,R(rsi),X8 MEM_DISP(r10,8))
+	INSN1(jmp,_	,L(31))
+	P2ALIGN(4,7)
+L(133):
+	INSN2(xorp,d	,R(xmm9), R(xmm9))
+	INSN2S(movs,d	,R(xmm9),X8 MEM_DISP(rbp,-32))
+	INSN2(mov,q	,X8 MEM_DISP(rbp,-32), R(r9))
+	INSN2S(movs,d	,R(xmm9), R(xmm10))
+	INSN2S(movs,d	,R(xmm9), R(xmm8))
+	INSN2(mov,q	,R(r9), R(r11))
+	INSN2(mov,q	,R(r9), R(r10))
+	INSN2(mov,q	,R(r9), R(rax))
+	INSN2(mov,q	,R(r9), R(r8))
+	INSN1(jmp,_	,L(81))
+L(52):
+	INSN1(jne,_	,L(135))
+	INSN2(xor,l	,R(r10d), R(r10d))
+	INSN2(mov,q	,R(r10),X8 MEM_DISP(rbp,-32))
+	INSN2(mov,q	,R(r10), R(r9))
+	INSN2(mov,q	,R(r10), R(r11))
+	INSN2(movlp,d	,X8 MEM_DISP(rbp,-32), R(xmm10))
+	INSN2(mov,q	,R(r10), R(rax))
+	INSN2(mov,q	,R(r10), R(r8))
+	INSN2S(movs,d	,R(xmm10), R(xmm8))
+	INSN1(jmp,_	,L(54))
+L(134):
+	INSN2(xorp,d	,R(xmm9), R(xmm9))
+	INSN2S(movs,d	,R(xmm9),X8 MEM_DISP(rbp,-32))
+	INSN2(mov,q	,X8 MEM_DISP(rbp,-32), R(r9))
+	INSN2S(movs,d	,R(xmm9), R(xmm10))
+	INSN2S(movs,d	,R(xmm9), R(xmm8))
+	INSN2(mov,q	,R(r9), R(r11))
+	INSN2(mov,q	,R(r9), R(r10))
+	INSN2(mov,q	,R(r9), R(rax))
+	INSN2(mov,q	,R(r9), R(r8))
+	INSN1(jmp,_	,L(30))
+L(135):
+	INSN2(xorp,d	,R(xmm9), R(xmm9))
+	INSN2S(movs,d	,R(xmm9),X8 MEM_DISP(rbp,-32))
+	INSN2(mov,q	,X8 MEM_DISP(rbp,-32), R(r10))
+	INSN2S(movs,d	,R(xmm9), R(xmm10))
+	INSN2S(movs,d	,R(xmm9), R(xmm8))
+	INSN2(mov,q	,R(r10), R(r11))
+	INSN2(mov,q	,R(r10), R(r9))
+	INSN2(mov,q	,R(r10), R(rax))
+	INSN2(mov,q	,R(r10), R(r8))
+	INSN1(jmp,_	,L(57))
+L(114):
+	INSN2(lea,q	,X8 MEM_DISP_SHINDEX0(0,rdi,8), R(rsi))
+	INSN2(mov,q	,X8 MEM(r10), R(rdx))
+	INSN2(mov,q	,R(r8), R(rbx))
+	INSN2(mov,q	,NUM(-1), R(rax))
+	INSN2(mov,l	,R(esi), R(ecx))
+	INSN2(sal,q	,R(cl), R(rbx))
+	INSN2(sal,q	,R(cl), R(rax))
+	INSN2(mov,q	,R(rbx), R(rcx))
+	INSN2(xor,q	,R(rdx), R(rcx))
+	INSN2(and,q	,R(rcx), R(rax))
+	INSN2(lea,l	,X4 MEM_DISP_SHINDEX0(-65,r11,8), R(ecx))
+	INSN2(xor,q	,R(rax), R(rdx))
+	INSN2(mov,l	,NUM(2), R(eax))
+	INSN2(sal,q	,R(cl), R(rax))
+	INSN2(mov,q	,R(rdx),X8 MEM(r10))
+	INSN2(mov,l	,NUM(64), R(ecx))
+	INSN2(mov,q	,X8 MEM_DISP(r10,8), R(rdx))
+	INSN2(sub,l	,R(esi), R(ecx))
+	INSN1(dec,q	,R(rax))
+	INSN2(sar,q	,R(cl), R(r8))
+	INSN2(xor,q	,R(rdx), R(r8))
+	INSN2(and,q	,R(r8), R(rax))
+	INSN2(xor,q	,R(rax), R(rdx))
+	INSN2(mov,q	,R(rdx),X8 MEM_DISP(r10,8))
+	INSN1(jmp,_	,L(31))
+L(116):
+	INSN2(mov,l	,NUM(64), R(esi))
+	INSN2(mov,q	,R(r9), R(rax))
+	INSN2(mov,q	,X8 MEM_DISP(r10,16), R(rdx))
+	INSN2(sub,l	,R(r12d), R(esi))
+	INSN2(mov,l	,R(esi), R(ecx))
+	INSN2(sar,q	,R(cl), R(r8))
+	INSN2(mov,l	,R(r12d), R(ecx))
+	INSN2(sal,q	,R(cl), R(rax))
+	INSN2(lea,l	,X4 MEM_DISP_SHINDEX0(-129,r11,8), R(ecx))
+	INSN2(or,q	,R(r8), R(rax))
+	INSN2(mov,q	,R(rax),X8 MEM_DISP(r10,8))
+	INSN2(mov,l	,NUM(2), R(eax))
+	INSN2(sal,q	,R(cl), R(rax))
+	INSN2(mov,l	,R(esi), R(ecx))
+	INSN2(sar,q	,R(cl), R(r9))
+	INSN1(dec,q	,R(rax))
+	INSN2(xor,q	,R(rdx), R(r9))
+	INSN2(and,q	,R(r9), R(rax))
+	INSN2(xor,q	,R(rax), R(rdx))
+	INSN2(mov,q	,R(rdx),X8 MEM_DISP(r10,16))
+	INSN1(jmp,_	,L(31))
+L(FE2):
+	FUNEND(avcall_call, .-avcall_call)
+#if !(defined __sun || (defined __APPLE__ && defined __MACH__) || (defined _WIN32 || defined __WIN32__ || defined __CYGWIN__))
+	.section	EH_FRAME_SECTION
+L(frame1):
+	.long	L(ECIE1)-.LSCIE1
+L(SCIE1):
+	.long	0x0
+	.byte	0x1
+	.string	"zR"
+	.uleb128 0x1
+	.sleb128 -8
+	.byte	0x10
+	.uleb128 0x1
+	.byte	0x1b
+	.byte	0xc
+	.uleb128 0x7
+	.uleb128 0x8
+	.byte	0x90
+	.uleb128 0x1
+	.align 8
+L(ECIE1):
+L(SFDE1):
+	.long	L(EFDE1)-.LASFDE1
+L(ASFDE1):
+	.long	L(ASFDE1)-.Lframe1
+	.long	L(FB2)-.
+	.long	L(FE2)-.LFB2
+	.uleb128 0x0
+	.byte	0x4
+	.long	L(CFI0)-.LFB2
+	.byte	0xe
+	.uleb128 0x10
+	.byte	0x86
+	.uleb128 0x2
+	.byte	0x4
+	.long	L(CFI1)-.LCFI0
+	.byte	0xd
+	.uleb128 0x6
+	.byte	0x4
+	.long	L(CFI4)-.LCFI1
+	.byte	0x83
+	.uleb128 0x5
+	.byte	0x8c
+	.uleb128 0x4
+	.byte	0x8d
+	.uleb128 0x3
+	.align 8
+L(EFDE1):
+#endif
+#if defined __linux__ || defined __FreeBSD__ || defined __FreeBSD_kernel__ || defined __DragonFly__
+	.section .note.GNU-stack,"",@progbits
+#endif

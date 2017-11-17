@@ -1,0 +1,70 @@
+trampoline - closures as first-class C functions.
+
+This library implements closures as first-class C functions. A closure
+consists of a regular C function and a piece of data which gets passed to
+the C function when the closure is called.
+
+Typical uses of closures are nested functions in programming languages,
+and call-back functions passed to other libraries.
+
+
+Installation instructions:
+
+    Configure the parent directory. Then:
+        cd trampoline
+        make
+        make check
+        make install
+
+
+Files in this package:
+
+    Documentation:
+
+        README           this text
+        COPYING          free software license
+        PLATFORMS        list of supported platforms
+        trampoline.3     manual page in Unix man format
+        trampoline.html  manual page in HTML format
+
+    Source:
+
+        trampoline.h     include file
+        trampoline.c     implementation of the library functions
+        tramp-hppa.s     the trampoline for hppa, in assembly language
+        tramp-powerpc.S  the trampoline for powerpc, in assembly language
+        cache.c          how to flush the instruction cache, now unused
+        test1.c          test program
+        test2.c          test program
+
+    Building:
+
+        Makefile.in      Makefile master
+
+    Porting:
+
+        PORTING          porting instructions
+        Makefile.devel   developer's Makefile
+        proto.c          sample source containing assignment and jumping
+        proto-*.s        its translation to assembly language
+        tramp-*.s        the trampoline, in assembly language
+        tramp-*.o        the trampoline, in binary form
+
+
+Copyright notice:
+
+Copyright 1995-2017 Bruno Haible <bruno@clisp.org>
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+

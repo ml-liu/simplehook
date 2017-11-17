@@ -1,0 +1,234 @@
+# Makefile for libffcall
+
+#### Start of system configuration section. ####
+
+# Directories used by "make":
+srcdir = @srcdir@
+
+# Directories used by "make install":
+prefix = @prefix@
+local_prefix = /usr/local
+exec_prefix = @exec_prefix@
+libdir = @libdir@
+includedir = @includedir@
+mandir = @mandir@
+datadir = @datadir@
+datarootdir = @datarootdir@
+
+# Programs used by "make":
+# C compiler
+CC = @CC@
+CFLAGS = @CFLAGS@
+CPP = @CPP@
+# Both C and C++ compiler
+CPPFLAGS = @CPPFLAGS@
+INCLUDES = -I. -I$(srcdir) -I.. -I$(srcdir)/.. -I$(srcdir)/vacall_r
+LDFLAGS = @LDFLAGS@
+LIBTOOL = @LIBTOOL@
+LIBTOOL_COMPILE = $(LIBTOOL) --mode=compile
+LIBTOOL_LINK = $(LIBTOOL) --mode=link
+LIBTOOL_INSTALL = $(LIBTOOL) --mode=install
+LIBTOOL_UNINSTALL = $(LIBTOOL) --mode=uninstall
+AR = @AR@
+AR_FLAGS = rc
+RANLIB = @RANLIB@
+RM = rm -f
+@SET_MAKE@
+
+# Programs used by "make install":
+INSTALL = @INSTALL@
+INSTALL_DATA = @INSTALL_DATA@
+
+#### End of system configuration section. ####
+
+SHELL = /bin/sh
+
+# Needed by $(LIBTOOL).
+top_builddir = .
+
+# Limit the set of exported symbols, on those platforms where libtool supports it.
+# Currently this excludes the symbols from gnulib modules.
+LIBFFCALL_EXPORTED_SYMBOLS_REGEX = '^ffcall_|^avcall_|^callback_|_callback$$'
+
+# Before making a release, change this according to the libtool documentation,
+# section "Library interface versions".
+LIBFFCALL_VERSION_INFO = 0:0:0
+
+all : all-subdirs libffcall.la
+
+all-subdirs : ffcall-version.h force
+	cd @subdir@ && $(MAKE) all
+
+ffcall-version.h : $(srcdir)/ffcall-version.in.h
+	cd .. && ./config.status --header=ffcall-version.h:ffcall-version.in.h
+
+ffcall-version.lo : $(srcdir)/ffcall-version.c ffcall-version.h config.h
+	$(LIBTOOL_COMPILE) $(CC) $(INCLUDES) $(CPPFLAGS) $(CFLAGS) -c $(srcdir)/ffcall-version.c
+
+libffcall.la : ffcall-version.lo avcall/avcall.lo avcall/avcall-libapi.lo avcall/avcall-structcpy.lo callback/vacall_r/libvacall.la callback/trampoline_r/libtrampoline.la callback/callback-libapi.lo
+	$(LIBTOOL_LINK) $(CC) -o libffcall.la -rpath $(libdir) -no-undefined -export-symbols-regex $(LIBFFCALL_EXPORTED_SYMBOLS_REGEX) -version-info $(LIBFFCALL_VERSION_INFO) ffcall-version.lo avcall/avcall.lo avcall/avcall-libapi.lo avcall/avcall-structcpy.lo callback/vacall_r/vacall.lo callback/vacall_r/vacall-libapi.lo callback/vacall_r/vacall-structcpy.lo callback/trampoline_r/*.lo callback/callback-libapi.lo gnulib-lib/libgnu.la $(LDFLAGS) $(LTLIBTHREAD)
+
+install : force
+	mkdir -p $(DESTDIR)$(prefix)
+	mkdir -p $(DESTDIR)$(libdir)
+	$(LIBTOOL_INSTALL) $(INSTALL_DATA) libffcall.la $(DESTDIR)$(libdir)/libffcall.la
+	mkdir -p $(DESTDIR)$(includedir)
+	$(INSTALL_DATA) ffcall-version.h $(DESTDIR)$(includedir)/ffcall-version.h
+	$(INSTALL_DATA) $(srcdir)/ffcall-abi.h $(DESTDIR)$(includedir)/ffcall-abi.h
+	cd @subdir@ && $(MAKE) install
+
+installdirs : force
+	mkdir -p $(DESTDIR)$(prefix)
+	mkdir -p $(DESTDIR)$(libdir)
+	mkdir -p $(DESTDIR)$(includedir)
+	cd @subdir@ && $(MAKE) installdirs
+
+uninstall : force
+	cd @subdir@ && $(MAKE) uninstall
+	$(LIBTOOL_UNINSTALL) $(RM) $(DESTDIR)$(libdir)/libffcall.la
+	$(RM) $(DESTDIR)$(includedir)/ffcall-abi.h
+	$(RM) $(DESTDIR)$(includedir)/ffcall-version.h
+
+check : force
+	cd @subdir@ && $(MAKE) check
+
+extracheck : force
+	cd @subdir@ && $(MAKE) extracheck
+
+MOSTLYCLEANDIRS = .libs _libs
+MOSTLYCLEANFILES = \
+  *.@OBJEXT@ *.lo core \
+  libffcall.*
+
+mostlyclean : force
+	cd @subdir@ && $(MAKE) mostlyclean
+	$(RM) -r $(MOSTLYCLEANDIRS)
+	$(RM) $(MOSTLYCLEANFILES)
+
+clean : force
+	cd @subdir@ && $(MAKE) clean
+	$(RM) -r $(MOSTLYCLEANDIRS)
+	$(RM) $(MOSTLYCLEANFILES)
+
+DISTCLEANFILES = \
+  config.status config.log config.cache Makefile config.h ffcall-version.h libtool \
+  stamp-h1 stamp-h2
+
+distclean : force
+	cd @subdir@; if test -f Makefile; then $(MAKE) distclean; fi
+	$(RM) -r $(MOSTLYCLEANDIRS)
+	$(RM) $(MOSTLYCLEANFILES)
+	$(RM) $(DISTCLEANFILES)
+
+maintainer-clean : force
+	cd @subdir@; if test -f Makefile; then $(MAKE) maintainer-clean; fi
+	$(RM) -r $(MOSTLYCLEANDIRS)
+	$(RM) $(MOSTLYCLEANFILES)
+	$(RM) $(DISTCLEANFILES)
+
+
+# List of source files (committed in version control).
+SOURCE_FILES = \
+  COPYING DEPENDENCIES NEWS PLATFORMS README README.os2 README.windows \
+  ChangeLog \
+  VERSION \
+  Makefile.devel \
+  Makefile.maint \
+  Makefile.in \
+  configure.ac \
+  m4/as-underscore.m4 \
+  m4/cc-gcc.m4 \
+  m4/codeexec.m4 \
+  m4/endianness.m4 \
+  m4/general.m4 \
+  m4/getpagesize.m4 \
+  m4/ireg.m4 \
+  m4/ln.m4 \
+  m4/mach-vm.m4 \
+  m4/mmap.m4 \
+  m4/mprotect.m4 \
+  m4/proto.m4 \
+  m4/shm.m4 \
+  m4/smallstruct.m4 \
+  common/asm-alpha.sh \
+  common/asm-arm.sh common/asm-arm.h \
+  common/asm-hppa.sh common/asm-hppa.h \
+  common/asm-hppa64.sh common/asm-hppa64.h \
+  common/asm-i386.sh common/asm-i386.h \
+  common/asm-m68k.sh common/asm-m68k.h \
+  common/asm-mips.sh common/asm-mips.h \
+  common/asm-powerpc.sh \
+  common/asm-s390.sh \
+  common/asm-sparc.sh common/asm-sparc.h \
+  common/asm-x86_64.sh common/asm-x86_64.h \
+  common/noexecstack.h common/noexecstack-arm.h \
+  common/structcpy.c \
+  common/uniq-u.c \
+  ffcall-version.in.h dummy/ffcall-version.h \
+  ffcall-abi.h \
+  ffcall-stdint.h \
+  ffcall-version.c \
+  testcases.c
+# List of distributed files imported from other packages or directories.
+LIBTOOL_IMPORTED_FILES = \
+  build-aux/ltmain.sh \
+  m4/libtool.m4 \
+  m4/lt~obsolete.m4 \
+  m4/ltoptions.m4 \
+  m4/ltsugar.m4 \
+  m4/ltversion.m4
+GNULIB_IMPORTED_FILES = \
+  build-aux/ar-lib \
+  build-aux/compile \
+  build-aux/config.guess \
+  build-aux/config.sub \
+  build-aux/install-sh \
+  gnulib-m4/*.m4
+AUTOMAKE_IMPORTED_FILES = \
+  build-aux/missing
+IMPORTED_FILES = \
+  $(LIBTOOL_IMPORTED_FILES) $(GNULIB_IMPORTED_FILES) $(AUTOMAKE_IMPORTED_FILES)
+# List of files copied by autogen.sh.
+COPIED_FILES = \
+  callback/trampoline_r/PORTING \
+  callback/trampoline_r/cache.c \
+  callback/trampoline_r/cache-alpha.c \
+  callback/trampoline_r/cache-hppa.c
+# List of distributed files generated by Makefile.maint.
+GENERATED_FILES = \
+  aclocal.m4 \
+  configure \
+  config.h.in
+# List of distributed files.
+DISTFILES = $(SOURCE_FILES) $(IMPORTED_FILES) $(COPIED_FILES) $(GENERATED_FILES)
+
+distdir : $(DISTFILES)
+	for file in $(DISTFILES); do \
+	  if test -f $$file; then dir='.'; else dir='$(srcdir)'; fi; \
+	  destdir=`echo '$(distdir)'/$$file | sed -e 's|//*[^/]*$$||'`; \
+	  test -d "$$destdir" || mkdir -p "$$destdir"; \
+	  cp -p "$$dir/$$file" '$(distdir)'/$$file || exit 1; \
+	done
+	test -d '$(distdir)'/@subdir@ || mkdir '$(distdir)'/@subdir@; cd @subdir@ && $(MAKE) distdir distdir='$(distdir)'/@subdir@
+
+
+# Creating a distribution tarball.
+# Example: make dist VERSION=1.13-pre-20161227
+PACKAGE = @PACKAGE_TARNAME@
+VERSION = @VERSION@
+TAR = tar
+GZIP = gzip
+
+dist : force
+	tmpdistdir=$(PACKAGE)-$(VERSION); \
+	abstmpdistdir=`pwd`/$$tmpdistdir; \
+	rm -rf $$tmpdistdir $$tmpdistdir.tar $$tmpdistdir.tar.gz \
+	  && mkdir $$tmpdistdir \
+	  && $(MAKE) distdir distdir="$$abstmpdistdir" \
+	  && $(TAR) chof $$tmpdistdir.tar --owner=root --group=root $$tmpdistdir \
+	  && $(GZIP) -9 $$tmpdistdir.tar \
+	  && rm -rf $$tmpdistdir
+
+
+force :
+

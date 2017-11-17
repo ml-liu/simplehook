@@ -1,0 +1,110 @@
+libffcall - foreign function call libraries
+
+This is a library which can be used to build foreign function call interfaces
+in embedded interpreters.
+
+
+Installed libraries and header files:
+
+    It installs a library libffcall.{a,so}; to link with it, use the compiler
+    option '-lffcall'.
+
+    It consists of two parts:
+      * avcall - calling C functions with variable arguments.
+        Its include file is <avcall.h>.
+      * callback - closures with variable arguments as first-class C functions.
+        Its include file is <callback.h>.
+
+    Additionally, you can determine the libffcall version by including
+    <ffcall-version.h>.
+
+    For backward compatibility with versions 1.x, libraries libavcall.{a,so}
+    and libcallback.{a,so} are installed as well. But they are deprecated;
+    use libffcall.{a,so} instead.
+
+
+Installation instructions:
+
+        mkdir builddir
+        cd builddir
+        ../configure --cache-file=config.cache
+        make
+        make check
+        make install
+
+
+Files in this package:
+
+    Documentation:
+
+        README          this text
+        COPYING         free software license
+        PLATFORMS       list of supported platforms
+
+    Source:
+
+        avcall/*        the avcall package
+                        (compiled into libffcall)
+
+        vacall/*        the vacall package
+                        Implements C functions accepting variable argument
+                        prototypes.
+                        This is a non-reentrant variant of part of 'callback'.
+                        *Not* compiled into libffcall.
+
+        trampoline/*    the trampoline package
+                        Implements closures as first-class C functions.
+                        This is a non-reentrant variant of part of 'callback'.
+                        *Not* compiled into libffcall.
+
+        callback/*      the callback package
+                        (compiled into libffcall)
+
+    Building:
+
+        configure       configuration script
+        configure.ac    autoconf source for the configuration script
+        m4/*            auxiliary configuration scripts
+        Makefile.in     Makefile master
+
+
+Copyright notice:
+
+Copyright 1993-1995 Bill Triggs <Bill.Triggs@inrialpes.fr>        (original avcall)
+Copyright 1995-2017 Bruno Haible <bruno@clisp.org>                (everything)
+Copyright 1997      Jörg Höhle <Joerg.Hoehle@gmd.de>              (m68k AmigaOS support)
+Copyright 2000      Adam Fedor <fedor@gnu.org>                    (PowerPC MacOS support)
+Copyright 2001-2012 Sam Steingold <sds@gnu.org>                   (build infrastructure)
+Copyright 2001-2002 Gerhard Tonn <GerhardTonn@swol.de> <gt@debian.org> (s390 support)
+Copyright 2004      Paul Guyot <pguyot@kallisys.net>              (PowerPC MacOS support)
+Copyright 2005      Thiemo Seufer <ths@debian.org>                (MIPS EL support)
+Copyright 2009      Max Lapan <max.lapan@gmail.com>               (ARM EL support)
+Copyright 2010      Valery Ushakov <uwe@netbsd.org>               (SPARC64 improvements)
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+Distribution:
+
+git:
+$ git clone git://git.savannah.gnu.org/libffcall.git
+See https://savannah.gnu.org/git/?group=libffcall for more info.
+
+Bug reports to:
+
+  https://savannah.gnu.org/bugs/?func=additem&group=libffcall
+
+Homepage:
+
+  http://www.gnu.org/software/libffcall/
