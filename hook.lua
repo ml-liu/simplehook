@@ -65,7 +65,7 @@ end
 
 if(start_luaprofiler)
 then
-  --local a = get_so_load_base("/home/jx3/server/bin64/libEngine_Lua5X64.so")
+  --local a = get_so_load_base("/home/test/server/bin64/x.so")
   --start_luaprofiler(0x49330 + a)
 end
 
