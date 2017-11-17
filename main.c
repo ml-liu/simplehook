@@ -36,6 +36,22 @@ char g_sig[256] = {0};
 static lua_State* s_process_luaState = NULL;
 
 
+int get_tid(lua_State* L){
+
+   lua_pushnumber(L, (long)pthread_self());
+
+   return 1;
+
+}
+
+int get_pid(lua_State* L){
+
+   lua_pushnumber(L, (long)getpid());
+
+   return 1;
+
+}
+
 
 int  get_so_load_base(lua_State* L)
 {
@@ -155,6 +171,8 @@ static void wrap_function(void* data, va_alist alist){
 
 			lua_register(t_L,"get_current_stack", get_current_stack);
 			lua_register(t_L, "get_so_load_base", get_so_load_base);
+			lua_register(t_L, "get_tid", get_tid);
+			lua_register(t_L, "get_pid", get_pid);
 
 			luaL_loadfile(t_L, "hook.lua") ;
 			lua_pcall(t_L, 0, LUA_MULTRET, 0);
@@ -409,6 +427,9 @@ typedef struct _interface_addr{
 }interface_addr;
 
 
+
+
+
 void* get_thread_luastate(interface_addr* s){
 	
 	if(t_L == NULL){
@@ -486,6 +507,18 @@ int get_current_stack(lua_State* L)
 	lua_pushstring(L,str);
 
 	free(str);
+
+	return 1;
+}
+
+
+int get_fun_addr(lua_State* L)
+{
+	const char* funname = lua_tostring(L, -1);
+
+	void* addr = dlsym(RTLD_NEXT, funname);
+
+	lua_pushnumber(L,(long)addr);
 
 	return 1;
 }
@@ -634,6 +667,7 @@ void __attribute__((constructor)) Init()
 	luaL_openlibs(L);	
 	lua_register(L, "get_so_load_base", get_so_load_base);
 	lua_register(L, "set_hook", set_hook);
+	lua_register(L, "get_fun_addr", get_fun_addr);
 	lua_register(L, "hook_luajit_mem", hook_luajit_mem);
 	lua_register(L, "start_luaprofiler", start_luaprofiler);
 	luaL_dofile(L, "hook.lua");
