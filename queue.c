@@ -145,7 +145,7 @@ int queue_push_without_alloc(QUEUE *queue, void *data)
 
 	 
 
-    while(QINT_VALUE(queue->_queue_size) >= QINT_VALUE(queue->_queue_actual_capacity))
+    if(QINT_VALUE(queue->_queue_size) >= QINT_VALUE(queue->_queue_actual_capacity))
     {
 		if(s_file == NULL){
 			char tmpbuf[256];
@@ -155,6 +155,7 @@ int queue_push_without_alloc(QUEUE *queue, void *data)
 
 		fprintf(s_file, "nolock_queue size too big usleep 10us..\n");
 		fflush(s_file);
+		return -1;
     }
 
     queue->_queue_tail->_nxt_node->_data = data;
