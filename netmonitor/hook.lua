@@ -40,19 +40,19 @@ function listen(a,b)
 end
 
 
-function recv(fd,buf,len,flags)
-   writelog(string.format("recv fd %d len %d flags %d", fd, len, flags))
+function recv(fd,buf,len,flags,ret,elaps)
+   writelog(string.format("recv fd %d len %d flags %d ret %d elaps %d us", fd, len, flags, ret, elaps))
 end
 
 
-function send(fd, buf, len, flags)
-   writelog(string.format("send fd %d len %d flags %d", fd, len, flags))
+function send(fd, buf, len, flags, ret, elaps)
+   writelog(string.format("send fd %d len %d flags %d, ret %d elaps %d us", fd, len, flags, ret, eplaps))
 
 end
 
 
-function connect(fd, d1, d2)
-   writelog(string.format("connect fd %d", fd))
+function connect(fd, d1, d2, ret , elaps)
+   writelog(string.format("connect fd %d ret %d elaps", fd, ret, elaps))
    
 end
 
@@ -62,10 +62,20 @@ function accept(fd, d1, d2)
 end
 
 
+function socket(d,t,p,ret,elaps)
+  writelog(string.format("socket domain %d type %d protocal %d ret %d elaps %d us", d,t,p,ret,elaps)) 
+end
+
+
+function close(td)
+  writelog(string.format("close fd %d", fd))
+end
+
+
 
 if(start_luaprofiler)
 then
-  --local a = get_so_load_base("/home/test/server/bin64/x.so")
+  --local a = get_so_load_base("/home/jx3/server/bin64/libEngine_Lua5X64.so")
   --start_luaprofiler(0x49330 + a)
 end
 
@@ -91,5 +101,7 @@ then
   set_hook(get_fun_addr("recv"),"LIPLI","recv")
   set_hook(get_fun_addr("accept"),"IIPP","accept")
   set_hook(get_fun_addr("connect"),"IIPP","connect")
+  set_hook(get_fun_addr("socket"),"IIII","socket")
+  set_hook(get_fun_addr("close"),"II","close")
 end
 
