@@ -34,7 +34,68 @@
 #include "callback.h"
 char g_sig[256] = {0};
 static lua_State* s_process_luaState = NULL;
+#include "queue.h"
+#define MAX_LOG_QUEUE_SIZE (100000)
+static FILE* g_log_file = NULL;
+static QUEUE g_log_queue;
+pthread_mutex_t g_log_mutex;
 
+
+void* log_thread(void* data){
+
+	g_log_file = fopen("simplehook.log","w");
+
+	while(1){
+
+		char* str = NULL;
+
+		pthread_mutex_lock(&g_log_mutex);
+		queue_pop_without_dealloc(&g_log_queue, (void**)&str);
+		pthread_mutex_unlock(&g_log_mutex);
+
+		if(str != NULL){
+			
+			fprintf(g_log_file, "%s\n", str);
+
+			free(str);
+
+			continue;
+		}
+
+		usleep(10);
+	}
+
+	return NULL;
+
+}
+
+void log_init(){
+	pthread_t id;
+
+
+	pthread_mutex_init(&g_log_mutex, NULL);
+	 
+
+	queue_init(&g_log_queue, MAX_LOG_QUEUE_SIZE);
+	queue_reserved(&g_log_queue,MAX_LOG_QUEUE_SIZE);
+
+	pthread_create(&id, NULL, log_thread, NULL);	
+}
+
+
+int log_out(lua_State* L){
+
+	const char* str = lua_tostring(L, -1);
+
+	char* tmpbuf = malloc(strlen(str) + 1);
+
+	strcpy(tmpbuf, str);
+
+	pthread_mutex_lock(&g_log_mutex);
+	queue_push_without_alloc(&g_log_queue, tmpbuf);
+	pthread_mutex_unlock(&g_log_mutex);	
+
+}
 
 unsigned long long current_usecond(){
 
@@ -171,28 +232,19 @@ static void wrap_function(void* data, va_alist alist){
 	if(t_L == NULL){
 
 		if(s_process_luaState != NULL){
-			t_L = s_process_luaState;
-			lua_register(t_L,"get_current_stack", get_current_stack);
-			lua_register(t_L, "get_so_load_base", get_so_load_base);
-
-			luaL_loadfile(t_L, "hook.lua") ;
-			lua_pcall(t_L, 0, LUA_MULTRET, 0);			
+			t_L = s_process_luaState;		
 		}else{
-		
 			t_L =  luaL_newstate();
-
-			printf("t_L=%p\n", t_L);
-				
 			luaL_openlibs(t_L);	
-
-			lua_register(t_L,"get_current_stack", get_current_stack);
-			lua_register(t_L, "get_so_load_base", get_so_load_base);
-			lua_register(t_L, "get_tid", get_tid);
-			lua_register(t_L, "get_pid", get_pid);
-
-			luaL_loadfile(t_L, "hook.lua") ;
-			lua_pcall(t_L, 0, LUA_MULTRET, 0);
 		}
+		
+		lua_register(t_L,"get_current_stack", get_current_stack);
+		lua_register(t_L, "get_so_load_base", get_so_load_base);
+		lua_register(t_L, "get_tid", get_tid);
+		lua_register(t_L, "get_pid", get_pid);
+		lua_register(t_L, "log_out", log_out);
+		luaL_loadfile(t_L, "hook.lua") ;
+		lua_pcall(t_L, 0, LUA_MULTRET, 0);		
 	}	
 	
 	
@@ -486,7 +538,7 @@ void* get_thread_luastate(interface_addr* s){
 	return t_L;
 }
 
-void set_hook(lua_State *L){
+int set_hook(lua_State *L){
 	
 	char*p = NULL;
 	
@@ -496,7 +548,7 @@ void set_hook(lua_State *L){
 
 	printf("set_hook origion_hook_fun_addr=%p\n", origion_hook_fun_addr);
 	
-	char* sig = lua_tostring(L, -2);
+	const char* sig = lua_tostring(L, -2);
 	const char* lua_notify_fun_name = lua_tostring(L, -1);
 
 	int i = 0;
@@ -519,6 +571,7 @@ void set_hook(lua_State *L){
 	strcpy(g_sig, sig);
 	funchook_prepare_jit(ft, (void**)&origion_hook_fun_addr);
 	funchook_install(ft, 0);
+	return 0;
 }
 
 
@@ -690,6 +743,7 @@ void __attribute__((constructor)) Init()
 	pthread_t id_1;
 
 	funchook_t *fork_ft = funchook_create();
+	log_init();
 
 
 	funchook_set_debug_file("funchook.log");
@@ -717,7 +771,7 @@ void __attribute__((constructor)) Init()
 		exit(0);
 	}*/
 
-	return 0;	
+	 	
 }
 
 

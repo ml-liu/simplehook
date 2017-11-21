@@ -5,7 +5,7 @@
 
 
 
-int new_thread(void* data)
+void* new_thread(void* data)
 {
 
 
@@ -24,7 +24,7 @@ int new_thread(void* data)
         }
 
 
-    return 1;
+    return NULL;
 }
 
 int main()
