@@ -36,6 +36,22 @@ char g_sig[256] = {0};
 static lua_State* s_process_luaState = NULL;
 
 
+unsigned long long current_usecond(){
+
+	struct timeval t;
+		
+	gettimeofday(&t, NULL);
+
+	unsigned long long ret = t.tv_sec;
+
+	ret *= 1000000;
+
+	ret += (t.tv_usec);
+	
+	return ret;
+}
+
+
 int get_tid(lua_State* L){
 
    lua_pushnumber(L, (long)pthread_self());
@@ -319,10 +335,14 @@ static void wrap_function(void* data, va_alist alist){
 				assert(0);
 		}
 	}
-	
-	av_call(vlist);	
 
-	lua_pcall(t_L, luaparams, 0, 0);
+
+	unsigned long long now = current_usecond();
+	av_call(vlist);	
+	unsigned long long elaps = current_usecond() - now;
+	
+
+	
 
 	switch(rt){
 		case 'v':
@@ -330,50 +350,68 @@ static void wrap_function(void* data, va_alist alist){
 			break;
 		case 'c':
 			va_return_char(alist, ret.c);
+			LUA_PUSH(ret.c);
 			break;
 		case 'b':
 			va_return_schar(alist, ret.b);
+			LUA_PUSH(ret.b);
 			break;
 		case 'B':
 			va_return_uchar(alist, ret.B);
+			LUA_PUSH(ret.B);			
 			break;
 		case 'h':
 			va_return_short(alist, ret.h);
+			LUA_PUSH(ret.h);			
 			break;
 		case 'H':
 			va_return_ushort(alist, ret.H);
+			LUA_PUSH(ret.H);			
 			break;
 		case 'i':
 			va_return_int(alist, ret.i);
+			LUA_PUSH(ret.i);			
 			break;
 		case 'I':
 			va_return_uint(alist, ret.I);
+			LUA_PUSH(ret.I);			
 			break;
 		case 'l':
 			va_return_long(alist, ret.l);
+			LUA_PUSH(ret.l);			
 			break;
 		case 'L':
 			va_return_ulong(alist, ret.L);
+			LUA_PUSH(ret.L);			
 			break;
 		case 'q':
 			va_return_longlong(alist, ret.q);
+			LUA_PUSH(ret.q);			
 			break;
 		case 'Q':
 			va_return_ulonglong(alist, ret.Q);
+			LUA_PUSH(ret.Q);			
 			break;
 		case 'f':
 			va_return_float(alist, ret.f);
+			LUA_PUSH(ret.f);			
 			break;
 		case 'd':
 			va_return_double(alist, ret.d);
+			LUA_PUSH(ret.d);			
 			break;
 		case 'P':
 			va_return_ptr(alist, void*, ret.P);
+			LUA_PUSH((long)ret.P);			
 			break;
 		default:
 			assert(0);
 			
 	}
+
+	LUA_PUSH(elaps);
+
+	lua_pcall(t_L, luaparams, 0, 0);
 //postcall
 	
 	//printf("======= [wrapped] return from %p(%s)\n", to, ctx->sig);
