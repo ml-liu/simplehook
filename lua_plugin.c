@@ -62,7 +62,7 @@ int get_peer_info(lua_State* L){
 	return 2;
 }
 
-int is_sock_block(lua_State* L){
+int is_sock_nonblock(lua_State* L){
 	
 	int fd = lua_tointeger(L, -1);	
 	int  flags = fcntl(fd, F_GETFL, 0);
@@ -78,7 +78,7 @@ void add_lua_interface(lua_State* L){
 
 	lua_register(L, "get_sock_info", get_sock_info);
 	lua_register(L, "get_peer_info", get_peer_info);	
-	lua_register(L, "is_sock_block", is_sock_block);		
+	lua_register(L, "is_sock_nonblock", is_sock_nonblock);		
 }
 
 

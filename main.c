@@ -112,7 +112,7 @@ int log_out(lua_State* L){
 
 	unsigned long long tick = current_usecond() - s_begin;
 
-	snprintf(tmpbuf, 255, "%d.%d [%d] %s\n", tick/1000000, (tick%1000000)/1000, pthread_self(), str );
+	snprintf(tmpbuf, 255, "%d.%d [%d] %s", tick/1000000, (tick%1000000)/1000, pthread_self(), str );
 
 	pthread_mutex_lock(&g_log_mutex);
 	queue_push_without_alloc(&g_log_queue, tmpbuf);
