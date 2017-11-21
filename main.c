@@ -243,6 +243,9 @@ static void wrap_function(void* data, va_alist alist){
 		lua_register(t_L, "get_tid", get_tid);
 		lua_register(t_L, "get_pid", get_pid);
 		lua_register(t_L, "log_out", log_out);
+		extern void add_lua_interface(lua_State* L);
+	
+		add_lua_interface(t_L);
 		luaL_loadfile(t_L, "hook.lua") ;
 		lua_pcall(t_L, 0, LUA_MULTRET, 0);		
 	}	
