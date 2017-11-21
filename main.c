@@ -39,6 +39,20 @@ static lua_State* s_process_luaState = NULL;
 static FILE* g_log_file = NULL;
 static QUEUE g_log_queue;
 pthread_mutex_t g_log_mutex;
+unsigned long long current_usecond(){
+
+	struct timeval t;
+		
+	gettimeofday(&t, NULL);
+
+	unsigned long long ret = t.tv_sec;
+
+	ret *= 1000000;
+
+	ret += (t.tv_usec);
+	
+	return ret;
+}
 
 
 void* log_thread(void* data){
@@ -85,11 +99,20 @@ void log_init(){
 
 int log_out(lua_State* L){
 
+	static unsigned long long s_begin = 0;
+
+	if(0 == s_begin)
+		s_begin = current_usecond();
+
+	
+
 	const char* str = lua_tostring(L, -1);
 
-	char* tmpbuf = malloc(strlen(str) + 1);
+	char* tmpbuf = malloc(256);
 
-	strcpy(tmpbuf, str);
+	unsigned long long tick = current_usecond() - s_begin;
+
+	snprintf(tmpbuf, 255, "%d.%d [%d] %s\n", tick/1000000, (tick%1000000)/1000, pthread_self(), str );
 
 	pthread_mutex_lock(&g_log_mutex);
 	queue_push_without_alloc(&g_log_queue, tmpbuf);
@@ -97,20 +120,7 @@ int log_out(lua_State* L){
 
 }
 
-unsigned long long current_usecond(){
 
-	struct timeval t;
-		
-	gettimeofday(&t, NULL);
-
-	unsigned long long ret = t.tv_sec;
-
-	ret *= 1000000;
-
-	ret += (t.tv_usec);
-	
-	return ret;
-}
 
 
 int get_tid(lua_State* L){
@@ -765,6 +775,7 @@ void __attribute__((constructor)) Init()
 	lua_register(L, "get_fun_addr", get_fun_addr);
 	lua_register(L, "hook_luajit_mem", hook_luajit_mem);
 	lua_register(L, "start_luaprofiler", start_luaprofiler);
+	lua_register(L, "log_out", log_out);
 	luaL_dofile(L, "hook.lua");
 	
 	/*

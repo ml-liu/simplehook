@@ -22,6 +22,8 @@
 #include "lauxlib.h"
 #include "lualib.h"
 #include "netinet/in.h"
+#include <unistd.h>
+#include <fcntl.h>
 
 
 int get_sock_info(lua_State* L){
@@ -60,10 +62,26 @@ int get_peer_info(lua_State* L){
 	return 2;
 }
 
+int is_sock_block(lua_State* L){
+	
+	int fd = lua_tointeger(L, -1);	
+	int  flags = fcntl(fd, F_GETFL, 0);
+
+	printf("sockblock:%d\n", flags);
+
+	lua_pushinteger(L, (flags & O_NONBLOCK) ? 1 : 0);
+
+	return 1;
+}
+
 void add_lua_interface(lua_State* L){
 
 	lua_register(L, "get_sock_info", get_sock_info);
 	lua_register(L, "get_peer_info", get_peer_info);	
+	lua_register(L, "is_sock_block", is_sock_block);		
 }
+
+
+
 
 
