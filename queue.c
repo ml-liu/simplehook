@@ -152,8 +152,8 @@ int queue_push_without_alloc(QUEUE *queue, void *data)
 			sprintf(tmpbuf, "simple.busy.%d.txt", (int)getpid());
 			s_file = fopen(tmpbuf, "w");
 		}
-
-		fprintf(s_file, "nolock_queue size too big usleep 10us..\n");
+	
+		fprintf(s_file, "nolock_queue size too big \n");
 		fflush(s_file);
 		return -1;
     }

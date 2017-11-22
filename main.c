@@ -28,6 +28,7 @@
 #include "lua.h"
 #include "lauxlib.h"
 #include "lualib.h"
+#include <errno.h>
 
 #include "avcall.h"
 
@@ -55,6 +56,23 @@ unsigned long long current_usecond(){
 }
 
 
+
+__attribute((visibility("default"))) double current_tick(){
+
+	static unsigned long long s_begin = 0;
+
+	if( 0 == s_begin ){
+		s_begin = current_usecond();
+	}
+
+	return ((double)(current_usecond() - s_begin))/1000000;
+}
+
+ __attribute((visibility("default"))) long ffi_get_tid(){
+     return (long)pthread_self();
+ }
+
+
 void* log_thread(void* data){
 
 	g_log_file = fopen("simplehook.log","w");
@@ -71,6 +89,7 @@ void* log_thread(void* data){
 			
 			fprintf(g_log_file, "%s\n", str);
 
+	
 			free(str);
 
 			continue;
@@ -96,6 +115,18 @@ void log_init(){
 	pthread_create(&id, NULL, log_thread, NULL);	
 }
 
+__attribute((visibility("default")))  void ffi_log_out(char* str){
+
+	int ret = 0;
+	
+	do{
+		pthread_mutex_lock(&g_log_mutex);
+		ret = queue_push_without_alloc(&g_log_queue, str);
+		pthread_mutex_unlock(&g_log_mutex);	
+
+		usleep(100);
+	}while(ret == -1);
+}
 
 int log_out(lua_State* L){
 
@@ -114,11 +145,11 @@ int log_out(lua_State* L){
 
 	snprintf(tmpbuf, 255, "%d.%d [%d] %s", tick/1000000, (tick%1000000)/1000, pthread_self(), str );
 
-	pthread_mutex_lock(&g_log_mutex);
-	queue_push_without_alloc(&g_log_queue, tmpbuf);
-	pthread_mutex_unlock(&g_log_mutex);	
+	ffi_log_out(tmpbuf);
 
 }
+
+
 
 
 
@@ -404,6 +435,10 @@ static void wrap_function(void* data, va_alist alist){
 
 	unsigned long long now = current_usecond();
 	av_call(vlist);	
+
+	int error_code = errno;
+	
+	
 	unsigned long long elaps = current_usecond() - now;
 	
 
@@ -475,7 +510,9 @@ static void wrap_function(void* data, va_alist alist){
 	}
 
 	LUA_PUSH(elaps);
-
+	
+	LUA_PUSH(error_code);
+	
 	lua_pcall(t_L, luaparams, 0, 0);
 //postcall
 	
