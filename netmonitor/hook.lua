@@ -31,7 +31,6 @@ function listen(a,b)
 end
 
 
-listen(11,22)
 
 function recv(fd,buf,len,flags,ret,elaps)
    local isnonblock = is_sock_nonblock(fd)
