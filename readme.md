@@ -3,7 +3,7 @@ hook tool, used by myself..
 
 # compile
 ```cpp
-cd lua-5.1.5
+cd LuaJIT-2.0.5
 make linux
 cd ..
 cd libffcall-2.0
