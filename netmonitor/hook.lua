@@ -12,6 +12,7 @@ ffi.cdef[[
 
 
 local to_int=ffi.typeof("int")
+local to_long = ffi.typeof("long")
 
 
 function writelog(str)
@@ -36,7 +37,7 @@ function recv(fd,buf,len,flags,ret,elaps, errcode)
    local isnonblock = is_sock_nonblock(fd)
    local buff = ffi.C.malloc(356)
    local sockinfo = ffi.C.ffi_get_sock_info(to_int(fd))
-   ffi.C.sprintf(buff, "[%f] [0x%lx] recv fd %d len %d flags %d ret %d elaps %d us (%s %s) isnonblock %d errcode %d",ffi.C.current_tick(),ffi.C.ffi_get_tid(),to_int(fd), to_int( len), to_int(flags), to_int(ret), to_int(elaps), sockinfo, ffi.C.ffi_get_peer_info(to_int(fd)) ,to_int(isnonblock), to_int(errcode))
+   ffi.C.sprintf(buff, "[%f] [0x%lx] recv fd %d len %d flags %d ret %d elaps %d us (%s %s) isnonblock %d errcode %d",ffi.C.current_tick(),ffi.C.ffi_get_tid(),to_int(fd), to_int( len), to_int(flags), to_long(ret), to_int(elaps), sockinfo, ffi.C.ffi_get_peer_info(to_int(fd)) ,to_int(isnonblock), to_int(errcode))
    ffi.C.ffi_log_out(buff)
 end
 
@@ -45,14 +46,14 @@ function send(fd, buf, len, flags, ret, elaps, errcode)
    local isnonblock = is_sock_nonblock(fd)
    local buff = ffi.C.malloc(356)
    local sockinfo = ffi.C.ffi_get_sock_info(to_int(fd))
-   ffi.C.sprintf(buff, "[%f] [0x%lx] send fd %d len %d flags %d ret %d elaps %d us (%s %s) isnonblock %d errcode %d",ffi.C.current_tick(),ffi.C.ffi_get_tid(), to_int(fd), to_int( len), to_int(flags), to_int(ret), to_int(elaps), sockinfo, ffi.C.ffi_get_peer_info(to_int(fd)) ,to_int(isnonblock), to_int(errcode))
+   ffi.C.sprintf(buff, "[%f] [0x%lx] send fd %d len %d flags %d ret %d elaps %d us (%s %s) isnonblock %d errcode %d",ffi.C.current_tick(),ffi.C.ffi_get_tid(), to_int(fd), to_int( len), to_int(flags), to_long(ret), to_int(elaps), sockinfo, ffi.C.ffi_get_peer_info(to_int(fd)) ,to_int(isnonblock), to_int(errcode))
    ffi.C.ffi_log_out(buff)
 end
 
 
 function connect(fd, d1, d2, ret , elaps, errcode)
    local buff = ffi.C.malloc(256)
-   ffi.C.sprintf(buff, "[%f] [0x%lx] connect fd %d ret %d elaps %d us errcode %d",ffi.C.current_tick(),ffi.C.ffi_get_tid(), to_int(fd), to_int(ret), to_int(elaps), to_int(errcode))
+   ffi.C.sprintf(buff, "[%f] [0x%lx] connect fd %d ret %d elaps %d us errcode %d",ffi.C.current_tick(),ffi.C.ffi_get_tid(), to_int(fd), to_long(ret), to_int(elaps), to_int(errcode))
    ffi.C.ffi_log_out(buff)   
 end
 
