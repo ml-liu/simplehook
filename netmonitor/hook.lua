@@ -3,11 +3,11 @@ ffi.cdef[[
 	int sprintf(const char* fmt, ...);
 	void* malloc(size_t size);
 	int printf(const char* fmt, ...);
-        void ffi_log_out(char* str);
- 	char* ffi_get_sock_info(int fd);
+	void ffi_log_out(char* str);
+	char* ffi_get_sock_info(int fd);
 	char* ffi_get_peer_info(int fd);
-        double current_tick();
-        long ffi_get_tid();	
+	double current_tick();
+	long ffi_get_tid();	
 ]]
 
 
@@ -32,27 +32,27 @@ end
 
 
 
-function recv(fd,buf,len,flags,ret,elaps)
+function recv(fd,buf,len,flags,ret,elaps, errcode)
    local isnonblock = is_sock_nonblock(fd)
    local buff = ffi.C.malloc(356)
    local sockinfo = ffi.C.ffi_get_sock_info(to_int(fd))
-   ffi.C.sprintf(buff, "[%f] [0x%lx] recv fd %d len %d flags %d ret %d elaps %d us (%s %s) isnonblock %d",ffi.C.current_tick(),ffi.C.ffi_get_tid(),to_int(fd), to_int( len), to_int(flags), to_int(ret), to_int(elaps), sockinfo, ffi.C.ffi_get_peer_info(to_int(fd)) ,to_int(isnonblock))
+   ffi.C.sprintf(buff, "[%f] [0x%lx] recv fd %d len %d flags %d ret %d elaps %d us (%s %s) isnonblock %d errcode %d",ffi.C.current_tick(),ffi.C.ffi_get_tid(),to_int(fd), to_int( len), to_int(flags), to_int(ret), to_int(elaps), sockinfo, ffi.C.ffi_get_peer_info(to_int(fd)) ,to_int(isnonblock), to_int(errcode))
    ffi.C.ffi_log_out(buff)
 end
 
 
-function send(fd, buf, len, flags, ret, elaps)
+function send(fd, buf, len, flags, ret, elaps, errcode)
    local isnonblock = is_sock_nonblock(fd)
    local buff = ffi.C.malloc(356)
    local sockinfo = ffi.C.ffi_get_sock_info(to_int(fd))
-   ffi.C.sprintf(buff, "[%f] [0x%lx] send fd %d len %d flags %d ret %d elaps %d us (%s %s) isnonblock %d",ffi.C.current_tick(),ffi.C.ffi_get_tid(), to_int(fd), to_int( len), to_int(flags), to_int(ret), to_int(elaps), sockinfo, ffi.C.ffi_get_peer_info(to_int(fd)) ,to_int(isnonblock))
-  ffi.C.ffi_log_out(buff)
+   ffi.C.sprintf(buff, "[%f] [0x%lx] send fd %d len %d flags %d ret %d elaps %d us (%s %s) isnonblock %d errcode %d",ffi.C.current_tick(),ffi.C.ffi_get_tid(), to_int(fd), to_int( len), to_int(flags), to_int(ret), to_int(elaps), sockinfo, ffi.C.ffi_get_peer_info(to_int(fd)) ,to_int(isnonblock), to_int(errcode))
+   ffi.C.ffi_log_out(buff)
 end
 
 
-function connect(fd, d1, d2, ret , elaps)
+function connect(fd, d1, d2, ret , elaps, errcode)
    local buff = ffi.C.malloc(256)
-   ffi.C.sprintf(buff, "[%f] [0x%lx] connect fd %d ret %d elaps",ffi.C.current_tick(),ffi.C.ffi_get_tid(), to_int(fd), to_int(ret), to_int(elaps))
+   ffi.C.sprintf(buff, "[%f] [0x%lx] connect fd %d ret %d elaps %d us errcode %d",ffi.C.current_tick(),ffi.C.ffi_get_tid(), to_int(fd), to_int(ret), to_int(elaps), to_int(errcode))
    ffi.C.ffi_log_out(buff)   
 end
 
@@ -78,7 +78,17 @@ function close(fd)
   ffi.C.ffi_log_out(buff)
 end
 
+function epoll_create(size, ret)
+  local buff = ffi.C.malloc(256)
+  ffi.C.sprintf(buff, "[%f] [0x%lx] epoll_create size %d ret %d",ffi.C.current_tick(),ffi.C.ffi_get_tid(), to_int(size), to_int(ret));
+  ffi.C.ffi_log_out(buff)
+end
 
+function epoll_ctl(epfd, op , fd, ev)
+  local buff = ffi.C.malloc(256)
+  ffi.C.sprintf(buff, "[%f] [0x%lx] epoll_ctl epfd %d op %d fd %d ev %d",ffi.C.current_tick(),ffi.C.ffi_get_tid(), to_int(epfd), to_int(op), to_int(fd), *(ffi.typeof("int*")(ev)));
+  ffi.C.ffi_log_out(buff)
+end
 
 if(set_hook)
 then
@@ -92,5 +102,8 @@ then
   set_hook(get_fun_addr("connect"),"iiPP","connect")
   set_hook(get_fun_addr("socket"),"iiii","socket")
   set_hook(get_fun_addr("close"),"ii","close")
+  set_hook(get_fun_addr("epoll_create"),"ii","epoll_create")
+  set_hook(get_fun_addr("epoll_ctl"),"iiiiP","epoll_ctl")  
+
 end
 
