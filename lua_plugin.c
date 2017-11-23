@@ -24,6 +24,8 @@
 #include "netinet/in.h"
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/epoll.h>
+
 
 
 __thread char* t_get_sock_info_ThreadBuf = NULL;
@@ -115,12 +117,25 @@ int is_sock_nonblock(lua_State* L){
 	return 1;
 }
 
+int get_epoll_event_type(lua_State* L){
+	
+	 struct epoll_event* p = (struct epoll_event*)(void*)(long)lua_tonumber(L, -1);
+
+	 lua_pushnumber(L,(double)p->events);
+
+	 return 1;
+}
+
+
 void add_lua_interface(lua_State* L){
 
 	lua_register(L, "get_sock_info", get_sock_info);
 	lua_register(L, "get_peer_info", get_peer_info);	
-	lua_register(L, "is_sock_nonblock", is_sock_nonblock);		
+	lua_register(L, "is_sock_nonblock", is_sock_nonblock);	
+	lua_register(L, "get_epoll_event_type", get_epoll_event_type);
 }
+
+
 
 
 

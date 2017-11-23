@@ -86,7 +86,7 @@ end
 
 function epoll_ctl(epfd, op , fd, ev)
   local buff = ffi.C.malloc(256)
-  ffi.C.sprintf(buff, "[%f] [0x%lx] epoll_ctl epfd %d op %d fd %d ev %d",ffi.C.current_tick(),ffi.C.ffi_get_tid(), to_int(epfd), to_int(op), to_int(fd), *(ffi.typeof("int*")(ev)));
+  ffi.C.sprintf(buff, "[%f] [0x%lx] epoll_ctl epfd %d op %d fd %d ev 0x%lx",ffi.C.current_tick(),ffi.C.ffi_get_tid(), to_int(epfd), to_int(op), to_int(fd), ffi.typeof("long")(get_epoll_event_type(ev)));
   ffi.C.ffi_log_out(buff)
 end
 
