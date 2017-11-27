@@ -84,7 +84,10 @@ void __attribute__((constructor)) Init(){
 
 	char* out_buff = NULL;
 
-	if(ev == 0 || ev == 3 || ev == 4){
+
+	
+
+	if(ev == 0 || ev == -1 || ev == 4){
 		out_buff = (char*)malloc(1024);
 	}
 	
@@ -92,7 +95,7 @@ void __attribute__((constructor)) Init(){
 
 	ConnectInfo& info = g_net_stat_map[fd];
 
-	// 0 socketcreate  1 send 2 recv 3 close 4 accept
+	// 0 socketcreate  1 send 2 recv -1 close 4 accept
 
 	if(ev == 1){
 		if(value > 0){
@@ -121,18 +124,17 @@ void __attribute__((constructor)) Init(){
 			getsockname(fd, (struct sockaddr *)&serv, &serv_len);  
 			inet_ntop(AF_INET, &serv.sin_addr, serv_ip, sizeof(serv_ip));	
 			
-			char buff[200];
-			int cur_pos = sprintf(buff, " (%s:%p %s:%p) ",	serv_ip, ntohs(serv.sin_port));		
+			char buff[200] = {0};
+			int cur_pos = sprintf(buff, "%s:%d ",	serv_ip, ntohs(serv.sin_port));		
 			getpeername(fd, (struct sockaddr *)&serv, &serv_len);  
 			inet_ntop(AF_INET, &serv.sin_addr, serv_ip, sizeof(serv_ip));	
-			sprintf(buff + cur_pos, " (%s:%p %s:%p) ",	serv_ip, ntohs(serv.sin_port));	
-			
+			sprintf(buff + cur_pos, "%s:%d",	serv_ip, ntohs(serv.sin_port));	
 			info.sock_info = buff;
 		}
 	}
 
-	if(ev == 3){
-		sprintf(out_buff, "[%f] [0x%lx] fd %d %s snd %d rcv %d e_s_ret %d e_r_ret %d e_s_ts %f e_r_ts %f b_ts %f e_ts %f e_err %d", current_tick(), pthread_self(),
+	if(ev == -1){
+		sprintf(out_buff, "[%f] [0x%lx] fd %d (%s) snd %d rcv %d e_s_ret %d e_r_ret %d e_s_ts %f e_r_ts %f b_ts %f e_ts %f e_err %d", current_tick(), pthread_self(),
 			fd, info.sock_info.c_str(), info.send_bytes, info.recv_bytes, info.last_send_ret, info.last_recv_ret, info.last_send_ts, info.last_recv_ts, info.create_ts,current_tick(),info.last_errcode);
 
 		g_net_stat_map.erase(fd);

@@ -8,7 +8,10 @@ ffi.cdef[[
 	char* ffi_get_peer_info(int fd);
 	double current_tick();
 	long ffi_get_tid();	
+	void add_stat(int fd,int ev, int op, long value, int err);
 ]]
+
+local need_detail_log = 1
 
 
 local to_int=ffi.typeof("int")
@@ -22,7 +25,7 @@ end
 
 writelog("hook init");
  
-   
+local netstat = ffi.load("netstat_plugin")
 
 function listen(a,b)
    local str =  ffi.C.malloc(256);
@@ -33,6 +36,14 @@ end
 
 
 function recv(fd,buf,len,flags,ret,elaps, errcode)
+
+   netstat.add_stat(to_int(fd), to_int(0), to_int(0), to_long(ret), to_int(errcode));
+
+   if (need_detail_log ~= 1)
+   then
+	   return
+   end
+
    local isnonblock = is_sock_nonblock(fd)
    local buff = ffi.C.malloc(356)
    local sockinfo = ffi.C.ffi_get_sock_info(to_int(fd))
@@ -42,6 +53,14 @@ end
 
 
 function send(fd, buf, len, flags, ret, elaps, errcode)
+   netstat.add_stat(to_int(fd), to_int(1), to_int(0), to_long(ret), to_int(errcode));
+
+
+   if (need_detail_log ~= 1)
+   then
+	   return
+   end
+
    local isnonblock = is_sock_nonblock(fd)
    local buff = ffi.C.malloc(356)
    local sockinfo = ffi.C.ffi_get_sock_info(to_int(fd))
@@ -58,6 +77,20 @@ end
 
 
 function accept(fd, d1, d2, ret, elaps)
+   if (ret ~= -1) 
+   then
+      netstat.add_stat(to_int(ret), to_int(4), 0, 0, 0);
+   end
+
+   if (need_detail_log ~= 1)
+   then
+	   if (fd == -1)
+	   then
+	   		return
+
+	   end
+   end
+
    local isnonblock = is_sock_nonblock(fd)
    local buff = ffi.C.malloc(256)
    ffi.C.sprintf(buff, "[%f] [0x%lx] accept fd %d (%s) ret %d  elaps %d isnonblock %d",ffi.C.current_tick(),ffi.C.ffi_get_tid(), to_int(ret), ffi.C.ffi_get_sock_info(to_int(fd)), to_int(ret), to_int(elaps), to_int(isnonblock))
@@ -66,6 +99,11 @@ end
 
 
 function socket(d,t,p,ret,elaps)
+   if (ret ~= -1) 
+   then
+	  netstat.add_stat(to_int(ret), 0, 0, 0, 0);
+   end
+
    local buff = ffi.C.malloc(256)
    ffi.C.sprintf(buff, "[%f] [0x%lx] socket domain %d type %d protocal %d ret %d elaps %d us",ffi.C.current_tick(),ffi.C.ffi_get_tid(), to_int(d), to_int(t),to_int(p), to_int(ret), to_int(elaps))
    ffi.C.ffi_log_out(buff)
@@ -73,6 +111,7 @@ end
 
 
 function close(fd)
+  netstat.add_stat(to_int(fd), -1, 0, 0, 0);
   local buff = ffi.C.malloc(256)
   ffi.C.sprintf(buff, "[%f] [0x%lx] close fd %d",ffi.C.current_tick(),ffi.C.ffi_get_tid(), to_int(fd))
   ffi.C.ffi_log_out(buff)
