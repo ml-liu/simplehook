@@ -40,6 +40,20 @@ unsigned long long current_usecond(){
 	return ret;
 }
 
+unsigned long long current_msecond(){
+
+	struct timeval t;
+		
+	gettimeofday(&t, NULL);
+
+	unsigned long long ret = t.tv_sec;
+
+	ret *= 1000;
+
+	ret += (t.tv_usec/1000);
+	
+	return ret;
+}
 
 
 __attribute((visibility("default"))) double current_tick(){

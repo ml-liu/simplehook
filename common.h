@@ -10,6 +10,7 @@ __attribute((visibility("default"))) double current_tick();
  __attribute((visibility("default"))) long ffi_get_tid();
 void log_init();
 __attribute((visibility("default")))  void ffi_log_out(char* str);
+unsigned long long current_msecond();
 #ifdef __cplusplus
 }
 #endif
