@@ -132,16 +132,18 @@ void __attribute__((constructor)) Init(){
 	}
 
 	if(ev == 3){
-		sprintf(out_buff, "fd %d %s snd %d rcv %d e_s_ret %d e_r_ret %d e_s_ts %f e_r_ts %f b_ts %f e_ts %f e_err %d", 
+		sprintf(out_buff, "[%f] [0x%lx] fd %d %s snd %d rcv %d e_s_ret %d e_r_ret %d e_s_ts %f e_r_ts %f b_ts %f e_ts %f e_err %d", current_tick(), pthread_self(),
 			fd, info.sock_info.c_str(), info.send_bytes, info.recv_bytes, info.last_send_ret, info.last_recv_ret, info.last_send_ts, info.last_recv_ts, info.create_ts,current_tick(),info.last_errcode);
+
+		g_net_stat_map.erase(fd);
 	}
 
 	if(ev == 0){
-		sprintf(out_buff," socket create fd %d", fd);
+		sprintf(out_buff,"[%f] [0x%lx] socket create fd %d",  current_tick(), pthread_self(),fd);
 	}
 
 	if(ev == 4){
-		sprintf(out_buff," socket accept fd %d", fd);
+		sprintf(out_buff,"[%f] [0x%lx] socket accept fd %d",  current_tick(), pthread_self(),fd);
 	}
 
 	pthread_mutex_unlock(&g_mutex);
