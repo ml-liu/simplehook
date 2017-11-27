@@ -74,7 +74,7 @@ void* log_thread(void* data){
 			
 			fprintf(g_log_file, "%s\n", str);
 
-	
+			fflush(g_log_file);
 			free(str);
 
 			continue;

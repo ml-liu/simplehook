@@ -11,7 +11,7 @@ ffi.cdef[[
 	void add_stat(int fd,int ev, int op, long value, int err);
 ]]
 
-local need_detail_log = 1
+local need_detail_log = 0
 
 
 local to_int=ffi.typeof("int")
@@ -37,7 +37,7 @@ end
 
 function recv(fd,buf,len,flags,ret,elaps, errcode)
 
-   netstat.add_stat(to_int(fd), to_int(0), to_int(0), to_long(ret), to_int(errcode));
+   netstat.add_stat(to_int(fd), 2, 0, to_long(ret), to_int(errcode));
 
    if (need_detail_log ~= 1)
    then
@@ -53,7 +53,7 @@ end
 
 
 function send(fd, buf, len, flags, ret, elaps, errcode)
-   netstat.add_stat(to_int(fd), to_int(1), to_int(0), to_long(ret), to_int(errcode));
+   netstat.add_stat(to_int(fd), 1, 0, to_long(ret), to_int(errcode));
 
 
    if (need_detail_log ~= 1)
@@ -79,15 +79,14 @@ end
 function accept(fd, d1, d2, ret, elaps)
    if (ret ~= -1) 
    then
-      netstat.add_stat(to_int(ret), to_int(4), 0, 0, 0);
+      netstat.add_stat(to_int(ret),4, 0, 0, 0);
    end
 
    if (need_detail_log ~= 1)
    then
-	   if (fd == -1)
+	   if (ret == -1)
 	   then
 	   		return
-
 	   end
    end
 
