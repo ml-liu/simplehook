@@ -11,6 +11,8 @@ __attribute((visibility("default"))) double current_tick();
 void log_init();
 __attribute((visibility("default")))  void ffi_log_out(char* str);
 unsigned long long current_msecond();
+__attribute((visibility("default")))  char* ffi_get_sock_info(int fd);
+__attribute((visibility("default")))  char* ffi_get_peer_info(int fd);
 #ifdef __cplusplus
 }
 #endif
