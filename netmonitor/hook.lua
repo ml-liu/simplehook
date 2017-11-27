@@ -26,7 +26,6 @@ writelog("hook init");
 
 function listen(a,b)
    local str =  ffi.C.malloc(256);
-   print(a)
    ffi.C.sprintf(str,"[%f] [0x%lx] listen ffi %d %d",ffi.C.current_tick(),ffi.C.ffi_get_tid(),to_int( a), to_int(b))
    ffi.C.ffi_log_out(str)
 end

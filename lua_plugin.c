@@ -126,6 +126,15 @@ int get_epoll_event_type(lua_State* L){
 	 return 1;
 }
 
+int get_string_by_ptr(lua_State* L){
+
+	char* s = (char*)(void*)(long)lua_tonumber(L, -1);
+
+	lua_pushstring(L,s);
+
+	return 1;
+}
+
 
 void add_lua_interface(lua_State* L){
 
@@ -133,6 +142,7 @@ void add_lua_interface(lua_State* L){
 	lua_register(L, "get_peer_info", get_peer_info);	
 	lua_register(L, "is_sock_nonblock", is_sock_nonblock);	
 	lua_register(L, "get_epoll_event_type", get_epoll_event_type);
+	lua_register(L, "get_string_by_ptr", get_string_by_ptr);
 }
 
 
