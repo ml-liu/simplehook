@@ -136,7 +136,7 @@ void* spd_stat_thread(void* d){
 
 		char* out_buff = (char*)malloc(4096);
 		
-		int cur_pos = sprintf(out_buff, "NET***************\nNET***total out %lld total in %lld\n", g_total_speed_cal.spd_out->speed_value(), g_total_speed_cal.spd_in->speed_value());
+		int cur_pos = sprintf(out_buff, "NET %f ***************\nNET***total out %lld total in %lld\n", current_tick(), g_total_speed_cal.spd_out->speed_value(), g_total_speed_cal.spd_in->speed_value());
 
 		std::map<int,  NetSpeedInfo>::iterator port_it;
 		std::map<std::string, NetSpeedInfo>::iterator ip_it;
