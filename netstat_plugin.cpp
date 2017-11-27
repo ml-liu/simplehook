@@ -39,7 +39,7 @@ extern "C" {
 
 class ConnectInfo{
 public:
-	ConnectInfo():send_bytes(0),recv_bytes(0),last_errcode(0),close_reason(0),create_ts(0),recv_error_cnt(0),send_error_cnt(0),send_cnt(0),recv_cnt(0),
+	ConnectInfo():send_bytes(0),recv_bytes(0),last_send_errcode(0),last_recv_errcode(0),close_reason(0),create_ts(0),recv_error_cnt(0),send_error_cnt(0),send_cnt(0),recv_cnt(0),
 		last_recv_ret(0),last_send_ret(0), has_sock_info(0){
 
 		create_ts = current_tick();
@@ -49,7 +49,8 @@ public:
 public:	
 	int send_bytes;
 	int recv_bytes;
-	int last_errcode;
+	int last_recv_errcode;
+	int last_send_errcode;
 	int close_reason;
 	double create_ts;
 	int recv_error_cnt;
@@ -218,14 +219,33 @@ extern "C"  __attribute((visibility("default"))) void add_spd_stat(int type, con
 			char buff[200] = {0};
 			
 			info.local_port = ntohs(serv.sin_port);
-			
 			int cur_pos = sprintf(buff, "%s:%d ",	serv_ip, ntohs(serv.sin_port));		
+
+
+			
+			serv_len = sizeof(serv);	 
+			memset(&serv, 0, serv_len);
 			getpeername(fd, (struct sockaddr *)&serv, &serv_len);  
 			inet_ntop(AF_INET, &serv.sin_addr, serv_ip, sizeof(serv_ip));	
 			sprintf(buff + cur_pos, "%s:%d",	serv_ip, ntohs(serv.sin_port));	
-			info.sock_info = buff;
-			info.remote_ip = serv_ip;
-			info.remote_info = buff+cur_pos;			
+
+			char* local_info = ffi_get_sock_info(fd);
+			char* remote_info = ffi_get_peer_info(fd);
+
+			info.sock_info =  std::string(local_info)  + " " + remote_info;
+    		info.remote_info = remote_info;
+
+			int pos = strchr(local_info, ':') - local_info;
+			if(pos > 0 && pos < strlen(local_info) - 1)
+				info.local_port = atoi(local_info + pos + 1);
+
+			pos = strchr(remote_info, ':') - remote_info;
+			if(pos > 0 && pos < strlen(remote_info) - 1){
+				remote_info[pos] = '\0';
+				info.remote_ip = remote_info;
+			}
+
+			info.has_sock_info = 1;
 		}
 	}
 
@@ -239,6 +259,7 @@ extern "C"  __attribute((visibility("default"))) void add_spd_stat(int type, con
 
 		info.last_send_ret = value;
 		info.last_send_ts = current_tick();
+		info.last_send_errcode = err;
 
 		
 	}else if(ev == 2){
@@ -249,15 +270,15 @@ extern "C"  __attribute((visibility("default"))) void add_spd_stat(int type, con
 
 		info.last_recv_ret = value;
 		info.last_recv_ts = current_tick();
+		info.last_recv_errcode = err;
 	}
 
-	info.last_errcode = err;
 
 
 
 	if(ev == -1){
-		sprintf(out_buff, "[%f] [0x%lx] fd %d (%s) snd %d rcv %d e_s_ret %d e_r_ret %d e_s_ts %f e_r_ts %f b_ts %f e_ts %f e_err %d", current_tick(), pthread_self(),
-			fd, info.sock_info.c_str(), info.send_bytes, info.recv_bytes, info.last_send_ret, info.last_recv_ret, info.last_send_ts, info.last_recv_ts, info.create_ts,current_tick(),info.last_errcode);
+		sprintf(out_buff, "[%s:%d][%f] [0x%lx] fd %d (%s) snd %d rcv %d e_s_ret %d e_r_ret %d e_s_ts %f e_r_ts %f b_ts %f e_ts %f e_snd_err %d e_rcv_err %d",info.remote_ip.c_str(), info.local_port, current_tick(), pthread_self(),
+			fd, info.sock_info.c_str(), info.send_bytes, info.recv_bytes, info.last_send_ret, info.last_recv_ret, info.last_send_ts, info.last_recv_ts, info.create_ts,current_tick(),info.last_send_errcode, info.last_recv_errcode);
 
 		g_net_stat_map.erase(fd);
 	}

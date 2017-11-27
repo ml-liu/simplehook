@@ -17,7 +17,9 @@ make
 ```cpp
 simplehook_64.so
 hook.lua
+libnetstat_plugin.so  //网络监控扩展模块，hook.lua中使用ffi调用
 
+export LD_LIBRARY_PATH=.
 LD_PRELOAD=./simplehook_64.so ./Server
 ```
 

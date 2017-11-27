@@ -28,8 +28,7 @@
 
 
 
-__thread char* t_get_sock_info_ThreadBuf = NULL;
-__thread char* t_get_peer_info_ThreadBuf = NULL;
+
 
 
 int get_sock_info(lua_State* L){
@@ -50,41 +49,6 @@ int get_sock_info(lua_State* L){
 	
 }
 
-__attribute((visibility("default")))  char* ffi_get_sock_info(int fd){
-
-	struct sockaddr_in serv, guest;  
-	char serv_ip[20] = {0};  
-
-	socklen_t serv_len = sizeof(serv);	
-	 
-	getsockname(fd, (struct sockaddr *)&serv, &serv_len);  
-	inet_ntop(AF_INET, &serv.sin_addr, serv_ip, sizeof(serv_ip));   
-
-	if( NULL == t_get_sock_info_ThreadBuf)
-		t_get_sock_info_ThreadBuf = malloc(30);
-
-	sprintf(t_get_sock_info_ThreadBuf, "%s:%d", serv_ip, ntohs(serv.sin_port));
-
-	return t_get_sock_info_ThreadBuf;
-}
-
-__attribute((visibility("default")))  char* ffi_get_peer_info(int fd){
-
-	struct sockaddr_in serv, guest;  
-	char serv_ip[20] = {0};  
-
-	socklen_t serv_len = sizeof(serv);	
-	 
-	getpeername(fd, (struct sockaddr *)&serv, &serv_len);  
-	inet_ntop(AF_INET, &serv.sin_addr, serv_ip, sizeof(serv_ip));   
-
-	if( NULL == t_get_peer_info_ThreadBuf)
-		t_get_peer_info_ThreadBuf = malloc(30);
-
-	sprintf(t_get_peer_info_ThreadBuf, "%s:%d", serv_ip, ntohs(serv.sin_port));
-
-	return t_get_peer_info_ThreadBuf;
-}
 
 
 int get_peer_info(lua_State* L){
