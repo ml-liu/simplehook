@@ -9,6 +9,7 @@ ffi.cdef[[
 	double current_tick();
 	long ffi_get_tid();	
 	void add_stat(int fd,int ev, int op, long value, int err);
+	void add_spd_stat(int type, const char* key);
 ]]
 
 local need_detail_log = 0
@@ -26,6 +27,14 @@ end
 writelog("hook init");
  
 local netstat = ffi.load("netstat_plugin")
+
+
+netstat.add_spd_stat(1, "3111")
+netstat.add_spd_stat(2, "10.20.76.55")
+netstat.add_spd_stat(3, "10.20.76.55:3111")
+netstat.add_spd_stat(0, "")
+
+
 
 function listen(a,b)
    local str =  ffi.C.malloc(256);
