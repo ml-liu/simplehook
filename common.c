@@ -24,7 +24,7 @@
 static FILE* g_log_file = NULL;
 static QUEUE g_log_queue;
 pthread_mutex_t g_log_mutex;
-
+static int  g_has_init = 0;
 unsigned long long current_usecond(){
 
 	struct timeval t;
@@ -90,6 +90,10 @@ void* log_thread(void* data){
 void log_init(){
 	pthread_t id;
 
+	if(0 != g_has_init)
+		return;
+	
+	g_has_init = 1;
 
 	pthread_mutex_init(&g_log_mutex, NULL);
 	 
