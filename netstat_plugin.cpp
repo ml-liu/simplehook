@@ -204,6 +204,19 @@ extern "C"  __attribute((visibility("default"))) void add_spd_stat(int type, con
 	
 	pthread_mutex_lock(&g_mutex);
 
+
+	if(ev == -1){
+
+		if(g_net_stat_map.find(fd) == g_net_stat_map.end()){
+
+			pthread_mutex_unlock(&g_mutex);
+
+			return;
+			
+		}
+	}
+	
+
 	ConnectInfo& info = g_net_stat_map[fd];
 
 	// 0 socketcreate  1 send 2 recv -1 close 4 accept
