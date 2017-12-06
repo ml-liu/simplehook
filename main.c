@@ -78,47 +78,7 @@ int  get_so_load_base(lua_State* L)
 
 	const char* so_path = lua_tostring(L, -1);
 
-
-    char szPath[256] = {0};
-    char szLines[1024] = {0};
-    char *lpCh = NULL;
-    long addr = 0;
-    int nFind = 0;
-
-    unsigned long long x1, x2;
-    char  x3[256];
-
-	void* base_addr = NULL;
-
-    snprintf(szPath, sizeof(szPath), "/proc/self/maps");
-    printf("%s", szPath);
-
-    FILE *fp = fopen(szPath, "r");
-    if (fp != NULL)
-    {
-        while (fgets(szLines, sizeof(szLines), fp))
-        {
-            if (strstr(szLines, so_path))
-            {
-                x1=x2=0;
-                memset(x3, 0, sizeof(x3));
-                sscanf(szLines, "%llx-%llx %s %*s %*s %*s %*s", &x1,&x2,x3);
-                printf("[get_so_load_base] Find %s addr: %llx %llx  %s\r\n", so_path, x1,x2,x3);
-
-				if(strstr(x3, "x")){
-					base_addr = (void*)x1;
-					break;
-				}
-				
-            }
-        }
-
-        fclose(fp);
-    }
-    else
-    {
-        printf("[get_so_load_base] fopen error\r\n");
-    }
+	long base_addr = ffi_get_so_load_base(so_path);
 
     lua_pushnumber(L, (double)(long)base_addr);
 
@@ -695,7 +655,7 @@ void __attribute__((constructor)) Init()
 	pthread_t id_1;
 
 	funchook_t *fork_ft = funchook_create();
-	log_init();
+	log_init(NULL);
 
 
 	funchook_set_debug_file("funchook.log");
@@ -810,14 +770,6 @@ int ctl_thread(void* data){
 
 }
 
-void init_ctl_thread(){
-	pthread_t id_1;
-	int ret=pthread_create(&id_1,NULL,(void  *) ctl_thread,NULL);
-	if(ret != 0){
-		 
-		exit(0);
-	}
-}	
 
 
 

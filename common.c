@@ -21,12 +21,15 @@
 #include "queue.h"
 #include "common.h"
 #include "arpa/inet.h"
+#include "BoundedPriQueue.h"
 
 #define MAX_LOG_QUEUE_SIZE (100000)
 static FILE* g_log_file = NULL;
 static QUEUE g_log_queue;
 pthread_mutex_t g_log_mutex;
 static int  g_has_init = 0;
+
+char log_file_name[255] = {0};
 unsigned long long current_usecond(){
 
 	struct timeval t;
@@ -76,7 +79,7 @@ __attribute((visibility("default"))) double current_tick(){
 
 void* log_thread(void* data){
 
-	g_log_file = fopen("simplehook.log","w");
+	g_log_file = fopen(log_file_name,"w");
 
 	while(1){
 
@@ -103,13 +106,19 @@ void* log_thread(void* data){
 
 }
 
-void log_init(){
+void log_init(const char* log_file){
 	pthread_t id;
 
 	if(0 != g_has_init)
 		return;
 	
 	g_has_init = 1;
+
+	if(log_file != NULL){
+		strcpy(log_file_name, log_file);
+	}else{
+		strcpy(log_file_name, "simple.log");
+	}
 
 	pthread_mutex_init(&g_log_mutex, NULL);
 	 
@@ -119,6 +128,64 @@ void log_init(){
 
 	pthread_create(&id, NULL, log_thread, NULL);	
 }
+
+
+long  ffi_get_so_load_base(const char* so_path)
+{
+
+    char szPath[256] = {0};
+    char szLines[1024] = {0};
+    char *lpCh = NULL;
+    long addr = 0;
+    int nFind = 0;
+
+    unsigned long long x1, x2;
+    char  x3[256];
+
+	void* base_addr = NULL;
+
+    snprintf(szPath, sizeof(szPath), "/proc/self/maps");
+    printf("%s", szPath);
+
+    FILE *fp = fopen(szPath, "r");
+    if (fp != NULL)
+    {
+        while (fgets(szLines, sizeof(szLines), fp))
+        {
+        	printf("%s\n", szLines);
+            if (strstr(szLines, so_path))
+            {
+                x1=x2=0;
+                memset(x3, 0, sizeof(x3));
+                sscanf(szLines, "%llx-%llx %s %*s %*s %*s %*s", &x1,&x2,x3);
+                printf("[get_so_load_base] Find %s addr: %llx %llx  %s\r\n", so_path, x1,x2,x3);
+
+				if(strstr(x3, "x")){
+					base_addr = (void*)x1;
+					break;
+				}
+				
+            }
+        }
+
+        fclose(fp);
+    }
+    else
+    {
+        printf("[get_so_load_base] fopen error\r\n");
+    }
+
+	return (long)base_addr;
+}
+
+
+
+
+
+
+
+
+
 
 __attribute((visibility("default")))  void ffi_log_out(char* str){
 
@@ -171,6 +238,235 @@ __attribute((visibility("default")))  char* ffi_get_peer_info(int fd){
 
 	return t_get_peer_info_ThreadBuf;
 }
+
+
+unsigned long HashFn(void** stackData, int stackDataSize, StackInfoArray* m)
+{
+    int i;
+    unsigned long long result = 0;
+
+    for(i=0; i<stackDataSize; i++)
+    {
+        unsigned long long tmp = (unsigned long long)stackData[i];
+        tmp = (tmp << 21) - (tmp << 3) - tmp;
+        result ^= tmp;
+    }
+    return (unsigned long)(result);
+}
+
+StackInfoArray* NewStackInfoArray(int size, int stackLimit){
+
+	StackInfoArray* m = (StackInfoArray*)malloc(sizeof(StackInfoArray));
+
+	m->m_size = size;
+
+	m->m_stackLimit = MAX_STACK_LIMIT;
+
+	if(stackLimit > 0 && stackLimit < MAX_STACK_LIMIT)
+		m->m_stackLimit = stackLimit;
+
+	m->m_array = (StackInfoNode**)malloc(size * sizeof(StackInfoNode*));
+
+	memset(m->m_array, 0, size * sizeof(StackInfoNode*));
+
+	return m;
+}
+
+
+StackInfoNode* CurrentStackInfoNode(StackInfoArray* m){
+	
+    int stackId;
+	unsigned long stackHash = 0;
+    void* currentStack[MAX_STACK_LIMIT];
+    int stackSize;
+
+	int i;
+ 
+    stackSize = backtrace(currentStack, m->m_stackLimit);
+	 
+	stackHash = HashFn(currentStack,stackSize , m);
+
+	stackId = stackHash%m->m_size;
+
+	StackInfoNode** pn = &m->m_array[stackId];
+
+	while(*pn != NULL){
+		if((*pn)->m_stack_size == stackSize && (*pn)->m_hash == stackHash){
+
+			for(i = 0; i < stackSize; i++){
+				if((*pn)->m_stack_data[i] != currentStack[i])
+					break;
+			}
+
+			if(i == stackSize){
+				break;
+			}
+		}
+		
+		pn = &(*pn)->m_next;
+	}
+
+	if(NULL != *pn )
+		return *pn;
+
+
+	StackInfoNode* n = (StackInfoNode*)malloc(sizeof(StackInfoNode));
+
+	memset(n, 0, sizeof(StackInfoNode));
+
+	memcpy(n->m_stack_data, currentStack, stackSize*sizeof(void*));
+	n->m_stack_size = stackSize;
+
+	n->m_hash = stackHash;
+
+	*pn = n;
+
+	return n;
+	
+}
+
+
+void DumpStackInfoArray(StackInfoArray* m, const char* fileName){
+
+	int i = 0, j = 0;
+
+	FILE* f = fopen(fileName, "w");
+
+    BOUNDED_PRI_QUEUE q;
+    q = CreateBoundedPriQueue(400);	
+
+	unsigned long long total_new_cnt = 0;
+	unsigned long long total_del_cnt = 0;
+	unsigned long long total_ref_cnt = 0;
+	unsigned long long stackCnt = 0;
+
+	for(i = 0 ; i < m->m_size; i++){
+
+		StackInfoNode* n = m->m_array[i];
+
+		while(n != NULL){
+			Enqueue(q, n->m_add_cnt-n->m_del_cnt, n);
+			total_new_cnt += n->m_add_cnt;
+			total_del_cnt += n->m_del_cnt;
+			total_ref_cnt += (n->m_add_cnt-n->m_del_cnt);
+			stackCnt ++;
+			n = n->m_next;
+		}
+	}
+
+   
+    fprintf(f, "StackInfo  stack count: %d, total add cnt: %llu, total del cnt:%llu, total ref cnt:%llu\n", stackCnt,total_new_cnt ,total_del_cnt ,total_ref_cnt);
+    fprintf(f, " ****************************\n\n");
+
+	
+    StackInfoNode* n = (StackInfoNode*)Dequeue(q);
+    while(n != NULL)
+    {
+		fprintf(f, "\nref count: %llu, total alloc count: %llu, total free count: %llu, unfree size %llu,\n, ", n->m_add_cnt-n->m_del_cnt,n->m_add_cnt,n->m_del_cnt,0);
+		char** strings = backtrace_symbols(n->m_stack_data, n->m_stack_size);
+		fprintf(f, "stack: \n");
+		
+		
+		int stack_idx = 0;
+		for(j=0; j< n->m_stack_size; j++)
+		{
+			Dl_info info;
+			void* fun_addr = n->m_stack_data[stack_idx++];
+			dladdr(fun_addr, &info);		
+			int xx = (int)((unsigned long long )fun_addr - (unsigned long long )info.dli_fbase);
+			fprintf(f, "## %s %d %p %p %s\n", info.dli_fname, xx,  fun_addr, info.dli_fbase  , strings[j]);
+		} 
+
+		
+		free(strings);
+        n = (StackInfoNode*)Dequeue(q);
+    }
+
+
+	fclose(f);
+
+}
+
+
+struct _ctl_thread_data{
+	char m_sock_path[256];
+	ctl_thread_handle_fun m_handle_fun;
+};
+
+static void* ctl_thread(void* data){
+	struct _ctl_thread_data* d = (struct _ctl_thread_data*)data;
+
+	const char* sock_path = d->m_sock_path;
+
+	static char buff[4096];
+
+	int pos = 0;
+	
+	unlink(sock_path);
+	
+	/* create a socket */
+	int server_sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
+	
+	struct sockaddr_un server_addr;
+	server_addr.sun_family = AF_UNIX;
+	strcpy(server_addr.sun_path, sock_path);
+	
+	/* bind with the local file */
+	bind(server_sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr));
+	
+	/* listen */
+	listen(server_sockfd, 5);
+
+	char message[255];
+
+	char cmd[1024 + 1];
+	
+	char ch;
+	int client_sockfd;
+	struct sockaddr_un client_addr;
+	socklen_t len = sizeof(client_addr);
+	while(1)
+	{
+	
+	  /* accept a connection */
+	  client_sockfd = accept(server_sockfd, (struct sockaddr *)&client_addr, &len);
+
+	  if(client_sockfd == -1)
+	  	continue;
+
+
+	  memset(cmd, 0, sizeof(cmd));
+	
+	  /* exchange data */
+	  read(client_sockfd, cmd, 1024);
+	  
+	  char* res = d->m_handle_fun(cmd);
+
+	  write(client_sockfd, res, strlen(res));
+
+	  free(res);
+	  
+	  /* close the socket */
+	  close(client_sockfd);
+	}
+
+}	
+
+void init_ctl_thread(const char* sockpath,ctl_thread_handle_fun handlefun){
+
+	struct _ctl_thread_data* d = (struct _ctl_thread_data*)malloc(sizeof(struct _ctl_thread_data));
+
+	strcpy(d->m_sock_path, sockpath);
+
+	d->m_handle_fun = handlefun;
+
+	pthread_t id;
+
+	pthread_create(&id, NULL, ctl_thread, d);
+}
+
+
+
 
 
 
