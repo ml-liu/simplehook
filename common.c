@@ -130,7 +130,7 @@ void log_init(const char* log_file){
 }
 
 
-long  ffi_get_so_load_base(const char* so_path)
+__attribute((visibility("default"))) long  ffi_get_so_load_base(const char* so_path)
 {
 
     char szPath[256] = {0};

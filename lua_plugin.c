@@ -85,6 +85,7 @@ int get_epoll_event_type(lua_State* L){
 	
 	 struct epoll_event* p = (struct epoll_event*)(void*)(long)lua_tonumber(L, -1);
 
+	 double tmp = p != NULL ? p->events : 0;
 	 lua_pushnumber(L,(double)p->events);
 
 	 return 1;

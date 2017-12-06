@@ -653,7 +653,7 @@ int start_luaprofiler(lua_State* L)
 void __attribute__((constructor)) Init()
 {
 	pthread_t id_1;
-	signal(SIGTRAP, SIG_IGN);
+	//signal(SIGTRAP, SIG_IGN);
 	funchook_t *fork_ft = funchook_create();
 	log_init(NULL);
 
@@ -686,90 +686,5 @@ void __attribute__((constructor)) Init()
 
 	 	
 }
-
-
-
-int ctl_thread(void* data){
-
-	const char* sock_path = "/tmp/simplehook.sock";
-
-	static char buff[4096];
-
-	int pos = 0;
-	
-	unlink(sock_path);
-	
-	/* create a socket */
-	int server_sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
-	
-	struct sockaddr_un server_addr;
-	server_addr.sun_family = AF_UNIX;
-	strcpy(server_addr.sun_path, sock_path);
-	
-	/* bind with the local file */
-	bind(server_sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr));
-	
-	/* listen */
-	listen(server_sockfd, 5);
-
-	char message[255];
-
-	char cmd[1024 + 1];
-	
-	char ch;
-	int client_sockfd;
-	struct sockaddr_un client_addr;
-	socklen_t len = sizeof(client_addr);
-	while(1)
-	{
-	  
-	
-	  /* accept a connection */
-	  client_sockfd = accept(server_sockfd, (struct sockaddr *)&client_addr, &len);
-
-	  if(client_sockfd == -1)
-	  	continue;
-
-	  memset(cmd, 0, sizeof(cmd));
-	  /* exchange data */
-	  read(client_sockfd, cmd, 1024);
-
-	  write(client_sockfd, cmd, strlen(cmd));
-	  
-	  if(strncmp(cmd, "begin", 5) == 0){
-			write(client_sockfd, message, strlen(message));
-	  }else if(strncmp(cmd, "dump", 4) == 0){
-			sprintf(message, "begin dump now!!\n");
-			 
-			write(client_sockfd, message, strlen(message));
-			
-			sprintf(message, "dump end!!\n");
-			write(client_sockfd, message, strlen(message));
-	  }else if(strncmp(cmd, "status", 6) == 0){
-
-			
-			 
-			write(client_sockfd, message, strlen(message));	
-	  }else if(strncmp(cmd, "show", 4) == 0){
-			pos = 0;
-			write(client_sockfd, buff, strlen(buff));
-			
-	  }else if(strncmp(cmd, "watchmethod=", 12) == 0){
-			write(client_sockfd, message, strlen(message));	
-	  }else if(strncmp(cmd, "watchsize=", 10) == 0){
-			write(client_sockfd, message, strlen(message));	
-	  	}
-	  else{
-			pos = 0;
-			write(client_sockfd, buff, strlen(buff));	
-	  }
-
-	  /* close the socket */
-	  close(client_sockfd);
-	}
-
-}
-
-
 
 

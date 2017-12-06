@@ -14,7 +14,7 @@ unsigned long long current_msecond();
 __attribute((visibility("default")))  char* ffi_get_sock_info(int fd);
 __attribute((visibility("default")))  char* ffi_get_peer_info(int fd);
 
-long  ffi_get_so_load_base(const char* so_path);
+__attribute((visibility("default"))) long  ffi_get_so_load_base(const char* so_path);
 
 
 #define MAX_STACK_LIMIT (32)
