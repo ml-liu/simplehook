@@ -362,7 +362,7 @@ void DumpStackInfoArray(StackInfoArray* m, const char* fileName){
     StackInfoNode* n = (StackInfoNode*)Dequeue(q);
     while(n != NULL)
     {
-		fprintf(f, "\nref count: %llu, total alloc count: %llu, total free count: %llu, unfree size %llu,\n, ", n->m_add_cnt-n->m_del_cnt,n->m_add_cnt,n->m_del_cnt,0);
+		fprintf(f, "\nref count: %llu, total alloc count: %llu, total free count: %llu\n, ", n->m_add_cnt-n->m_del_cnt,n->m_add_cnt,n->m_del_cnt);
 		char** strings = backtrace_symbols(n->m_stack_data, n->m_stack_size);
 		fprintf(f, "stack: \n");
 		
