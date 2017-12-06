@@ -653,7 +653,7 @@ int start_luaprofiler(lua_State* L)
 void __attribute__((constructor)) Init()
 {
 	pthread_t id_1;
-
+	signal(SIGTRAP, SIG_IGN);
 	funchook_t *fork_ft = funchook_create();
 	log_init(NULL);
 
