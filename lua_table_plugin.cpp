@@ -230,17 +230,48 @@ static char* ctl_thread_handle(char* cmd){
 	return res;
 }
 
+
+typedef int (*lua_getinfo_hook_type) (void *L, const char *what, void *ar);
+lua_getinfo_hook_type s_lua_getinfo = NULL;
+
+static void callhook(lua_State *L, lua_Debug *ar) {
+	
+    s_lua_getinfo(L, "S", ar);
+  	
+	char* buff = (char*)malloc(512);
+
+	sprintf(buff, "%s %s(%d,%d) %.2f", (ar->event ? "ret" : "call"), ar->source, ar->linedefined, ar->lastlinedefined, current_tick());
+
+	ffi_log_out(buff);
+}
+
+
+
+typedef int  (*lua_sethook_type)(void*, void*, int mask, int count);
+lua_sethook_type s_lua_sethook = NULL;
+
+
+
+typedef void * (*luaL_newstate_hook_type) (void);
+luaL_newstate_hook_type s_luaL_newstate_hook = NULL;
+void * luaL_newstate_hook (void){
+	void* tmp = s_luaL_newstate_hook();
+	s_lua_sethook(tmp, callhook,LUA_MASKCALL | LUA_MASKRET, 0);
+	return tmp;
+}
+
+
 void __attribute__((constructor)) Init(){
 	
 	signal(SIGTRAP, SIG_IGN);
 
-	g_stack_arr = NewStackInfoArray(105708417 , 20);
+	//g_stack_arr = NewStackInfoArray(105708417 , 20);
 
 	pthread_mutex_init(&s_lock, NULL);
 
 	char tbuff[256];
 
-	sprintf(tbuff, "luatable.log.%d",(int) getpid());
+	sprintf(tbuff, "luahook.log.%d",(int) getpid());
 
 	log_init(tbuff);
 
@@ -263,7 +294,15 @@ void __attribute__((constructor)) Init(){
 
 	long addr =	ffi_get_so_load_base("/root/muses/lib/libcore.so.1");
 
-	lua_table_fun_hook((void*)addr , (void*)addr, (void*)(addr + 0x12b9e0) , (void*)(addr + 0x12ba70)  );	
+	//lua_table_fun_hook((void*)addr , (void*)addr, (void*)(addr + 0x135500) , (void*)(addr + 0x12ba70)  );	
+	funchook_t *fork_ft = funchook_create();
+	s_lua_sethook = (lua_sethook_type)(void*)(addr + 0x13bb20);
+	s_luaL_newstate_hook =  (luaL_newstate_hook_type)(void*)(addr + 0x135500);
+	s_lua_getinfo = (lua_getinfo_hook_type)(void*)(addr + 0x13bcc0);
+
+	
+	funchook_prepare(fork_ft, (void**)&s_luaL_newstate_hook, (void*)luaL_newstate_hook);
+	funchook_install(fork_ft, 0);
 
 	init_ctl_thread("/tmp/luatbl.sock", ctl_thread_handle);	
 }
