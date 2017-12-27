@@ -239,6 +239,18 @@ __attribute((visibility("default")))  char* ffi_get_peer_info(int fd){
 	return t_get_peer_info_ThreadBuf;
 }
 
+__attribute((visibility("default"))) void ffi_sleep(int sec){
+
+	sleep(sec);
+}
+
+__attribute((visibility("default"))) void ffi_usleep(int usec){
+
+	usleep(usec);
+}
+
+
+
 
 unsigned long HashFn(void** stackData, int stackDataSize, StackInfoArray* m)
 {

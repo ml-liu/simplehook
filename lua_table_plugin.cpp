@@ -126,6 +126,40 @@ void luaH_free_hook (void *L, void *t){
 	s_free(L, t);
 }
 
+typedef int (*lua_pcallk_type) (void *L, int nargs, int nresults, int errfunc,void* ctx, void*  k);
+lua_pcallk_type s_pcallk = NULL; 
+
+
+static std::map<void*, long long> s_pcallk_map;
+static pthread_mutex_t s_lock;
+int lua_pcallk_hook (void *L, int nargs, int nresults, int errfunc,void* ctx, void*  k){
+
+	long long tid = pthread_self();
+
+	pthread_mutex_lock(&s_lock);
+
+	if(s_pcallk_map.find(L) == s_pcallk_map.end()){
+		s_pcallk_map[L] = tid;
+	}else{
+		if(s_pcallk_map[L] != tid){
+
+			char*	buff = (char*)malloc(60);
+
+			sprintf(buff, "core!!!!!!!!!!!!!!!! ");
+
+			ffi_log_out(buff);			
+
+			sleep(10);
+			
+			assert(0);
+			
+		}
+	}
+
+	pthread_mutex_unlock(&s_lock);
+	
+	return 	s_pcallk(L, nargs, nresults, errfunc, ctx, k);
+}
 
 
  void lua_table_fun_hook( void* addr1, void* addr2, void* addr3,void* addr4){
@@ -146,7 +180,7 @@ void luaH_free_hook (void *L, void *t){
 	s_mark = addr2;
 	funchook_prepare(fork_ft, (void**)&s_traver, markroot_hook);
 	funchook_install(fork_ft, 0);
-*/
+
 	funchook_t *fork_ft = funchook_create();
 	s_new = (luaH_new_type)(void*)addr3;
 	funchook_prepare(fork_ft, (void**)&s_new, (void*)luaH_new_hook);
@@ -156,9 +190,16 @@ void luaH_free_hook (void *L, void *t){
 	s_free = (luaH_free_type)(void*)addr4;
 	funchook_prepare(fork_ft, (void**)&s_free, (void*)luaH_free_hook);
 	funchook_install(fork_ft, 0);	
+	*/
 
+	funchook_t *fork_ft = funchook_create();
+	s_pcallk = (luaH_new_type)(void*)0x160ff20;
+	funchook_prepare(fork_ft, (void**)&s_pcallk, (void*)lua_pcallk_hook);
+	funchook_install(fork_ft, 0);
 
 }
+
+
 
 
 void* ctl_thread(void* data){
@@ -194,6 +235,8 @@ void __attribute__((constructor)) Init(){
 	signal(SIGTRAP, SIG_IGN);
 
 	g_stack_arr = NewStackInfoArray(105708417 , 20);
+
+	pthread_mutex_init(&s_lock, NULL);
 
 	char tbuff[256];
 

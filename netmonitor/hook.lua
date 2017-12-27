@@ -59,7 +59,21 @@ function recv(fd,buf,len,flags,ret,elaps, errcode)
    ffi.C.sprintf(buff, "[%f] [0x%lx] recv fd %d len %d flags %d ret %ld elaps %d us (%s %s) isnonblock %d errcode %d",ffi.C.current_tick(),ffi.C.ffi_get_tid(),to_int(fd), to_int( len), to_int(flags), to_long(ret), to_int(elaps), sockinfo, ffi.C.ffi_get_peer_info(to_int(fd)) ,to_int(isnonblock), to_int(errcode))
    ffi.C.ffi_log_out(buff)
 end
+function write(fd,buf,len,flags,ret,elaps, errcode)
 
+   netstat.add_stat(to_int(fd), 2, 0, to_long(ret), to_int(errcode));
+
+   if (need_detail_log ~= 1)
+   then
+	   return
+   end
+
+   local isnonblock = is_sock_nonblock(fd)
+   local buff = ffi.C.malloc(356)
+   local sockinfo = ffi.C.ffi_get_sock_info(to_int(fd))
+   ffi.C.sprintf(buff, "[%f] [0x%lx] recv fd %d len %d flags %d ret %ld elaps %d us (%s %s) isnonblock %d errcode %d",ffi.C.current_tick(),ffi.C.ffi_get_tid(),to_int(fd), to_int( len), to_int(flags), to_long(ret), to_int(elaps), sockinfo, ffi.C.ffi_get_peer_info(to_int(fd)) ,to_int(isnonblock), to_int(errcode))
+   ffi.C.ffi_log_out(buff)
+end
 
 function send(fd, buf, len, flags, ret, elaps, errcode)
    netstat.add_stat(to_int(fd), 1, 0, to_long(ret), to_int(errcode));
