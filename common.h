@@ -24,7 +24,9 @@ typedef struct _StackInfoNode{
 	int m_add_cnt;
 
 	int m_del_cnt;
+	int m_alloc_size;
 
+	int m_free_size;
 	void* m_stack_data[MAX_STACK_LIMIT];
 
 	int m_stack_size;
