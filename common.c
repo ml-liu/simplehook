@@ -352,14 +352,20 @@ void DumpStackInfoArray(StackInfoArray* m, const char* fileName){
 	unsigned long long total_ref_cnt = 0;
 	unsigned long long stackCnt = 0;
 
+	unsigned long long total_alloc_size = 0;
+	unsigned long long total_free_size  = 0;
+
 	for(i = 0 ; i < m->m_size; i++){
 
 		StackInfoNode* n = m->m_array[i];
 
 		while(n != NULL){
-			Enqueue(q, n->m_add_cnt-n->m_del_cnt, n);
+			Enqueue(q, n->m_alloc_size-n->m_free_size, n);
 			total_new_cnt += n->m_add_cnt;
 			total_del_cnt += n->m_del_cnt;
+
+			total_alloc_size += n->m_alloc_size;
+			total_free_size += n->m_free_size;
 			total_ref_cnt += (n->m_add_cnt-n->m_del_cnt);
 			stackCnt ++;
 			n = n->m_next;
@@ -367,14 +373,14 @@ void DumpStackInfoArray(StackInfoArray* m, const char* fileName){
 	}
 
    
-    fprintf(f, "StackInfo  stack count: %d, total add cnt: %llu, total del cnt:%llu, total ref cnt:%llu\n", stackCnt,total_new_cnt ,total_del_cnt ,total_ref_cnt);
+    fprintf(f, "StackInfo stack count: %d, unfree size:%llu, total_alloc_size:%llu, total_free_size:%llu,  total add cnt: %llu, total del cnt:%llu, total ref cnt:%llu\n", stackCnt, total_alloc_size-total_free_size, total_alloc_size, total_free_size,total_new_cnt ,total_del_cnt ,total_ref_cnt);
     fprintf(f, " ****************************\n\n");
 
 	
     StackInfoNode* n = (StackInfoNode*)Dequeue(q);
     while(n != NULL)
     {
-		fprintf(f, "\nref count: %llu, total alloc count: %llu, total free count: %llu\n, ", n->m_add_cnt-n->m_del_cnt,n->m_add_cnt,n->m_del_cnt);
+		fprintf(f, "\nunfree size:%d, alloc_size :%d, free_size:%d , ref count: %llu, total alloc count: %llu, total free count: %llu\n, ", n->m_alloc_size - n->m_free_size, n->m_alloc_size, n->m_free_size,  n->m_add_cnt-n->m_del_cnt,n->m_add_cnt,n->m_del_cnt);
 		char** strings = backtrace_symbols(n->m_stack_data, n->m_stack_size);
 		fprintf(f, "stack: \n");
 		
