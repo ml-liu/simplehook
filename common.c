@@ -294,17 +294,17 @@ StackInfoArray* NewStackInfoArray(int size, int stackLimit){
 
 
 StackInfoNode* CurrentStackInfoNode(StackInfoArray* m){
-	
+	pthread_mutex_lock(&g_backtrace_mutex);	
     int stackId;
 	unsigned long stackHash = 0;
-    void* currentStack[MAX_STACK_LIMIT];
+    static void* currentStack[MAX_STACK_LIMIT];
     int stackSize;
 
 	int i;
 
- 	pthread_mutex_lock(&g_backtrace_mutex);
+ 	
     stackSize = backtrace(currentStack, m->m_stackLimit);
- 	pthread_mutex_unlock(&g_backtrace_mutex);	 
+ 
 	stackHash = HashFn(currentStack,stackSize , m);
 
 	stackId = stackHash%m->m_size;
@@ -327,8 +327,10 @@ StackInfoNode* CurrentStackInfoNode(StackInfoArray* m){
 		pn = &(*pn)->m_next;
 	}
 
-	if(NULL != *pn )
+	if(NULL != *pn ){
+		pthread_mutex_unlock(&g_backtrace_mutex);	 
 		return *pn;
+	}
 
 
 	StackInfoNode* n = (StackInfoNode*)malloc(sizeof(StackInfoNode));
@@ -341,7 +343,7 @@ StackInfoNode* CurrentStackInfoNode(StackInfoArray* m){
 	n->m_hash = stackHash;
 
 	*pn = n;
-
+	pthread_mutex_unlock(&g_backtrace_mutex);  
 	return n;
 	
 }
@@ -382,14 +384,14 @@ void DumpStackInfoArray(StackInfoArray* m, const char* fileName){
 	}
 
    
-    fprintf(f, "StackInfo stack count: %d, unfree size:%llu, total_alloc_size:%llu, total_free_size:%llu,  total add cnt: %llu, total del cnt:%llu, total ref cnt:%llu\n", stackCnt, total_alloc_size-total_free_size, total_alloc_size, total_free_size,total_new_cnt ,total_del_cnt ,total_ref_cnt);
+    fprintf(f, "StackInfo stack count: %d, unfree size:%d, total_alloc_size:%d, total_free_size:%d,  total add cnt: %d, total del cnt:%d, total ref cnt:%d\n", (int)stackCnt, (int)(total_alloc_size-total_free_size), (int)total_alloc_size, (int)total_free_size,(int)total_new_cnt ,(int)total_del_cnt ,(int)total_ref_cnt);
     fprintf(f, " ****************************\n\n");
 
 	
     StackInfoNode* n = (StackInfoNode*)Dequeue(q);
     while(n != NULL)
     {
-		fprintf(f, "\nunfree size:%d, alloc_size :%d, free_size:%d , ref count: %llu, total alloc count: %llu, total free count: %llu\n, ", n->m_alloc_size - n->m_free_size, n->m_alloc_size, n->m_free_size,  n->m_add_cnt-n->m_del_cnt,n->m_add_cnt,n->m_del_cnt);
+		fprintf(f, "\nunfree size:%d, alloc_size :%d, free_size:%d , ref count: %d, total alloc count: %d, total free count: %d\n, ", (int)(n->m_alloc_size - n->m_free_size), (int)n->m_alloc_size, (int)n->m_free_size,  (int)(n->m_add_cnt-n->m_del_cnt),(int)n->m_add_cnt,(int)n->m_del_cnt);
 		char** strings = backtrace_symbols(n->m_stack_data, n->m_stack_size);
 		fprintf(f, "stack: \n");
 		

@@ -27,17 +27,17 @@
 #include "netinet/in.h"
 #include <unistd.h>
 #include <fcntl.h>
-#include "lua.h"
-#include "lauxlib.h"
-#include "lualib.h"
+
 
 extern "C" {
 #include <sys/epoll.h>
 #include "arpa/inet.h"
 #include "funchook.h"
+#include "lua.h"
+#include "lauxlib.h"
+#include "lualib.h"
+
 }
-#include <map>
-#include "speed_calculator.h"
 
 
 int log_out(const char* str){
@@ -78,6 +78,7 @@ size_t g_total_alloc_cnt = 0;
 
 size_t g_total_free_cnt = 0;
 
+int g_has_started = 0;
 int s_need_dump_idx = 0;
 
 
@@ -93,16 +94,63 @@ typedef void * (*lj_alloc_f_hook_type)(void *msp, void *ptr, size_t osize, size_
 
 static lj_alloc_f_hook_type s_mem_hook_addr = NULL;
 
+__thread std::map<void*, int>* g_ptr_map;
+
+
+
+void *mem_hook_addr_wrap(void *msp, void *ptr, size_t osize, size_t nsize){
+
+	if(NULL == g_ptr_map){
+		g_ptr_map = new std::map<void*, int>;
+	}
+
+
+	
+
+	void* ret =  s_mem_hook_addr(msp, ptr, osize, nsize);
+
+	if(ptr != NULL){
+		if(g_ptr_map->find(ptr) == g_ptr_map->end()){
+			log_out("ERROR!!!!!!!!!!!!!!!!");
+			sleep(10);
+			return ret;
+		}
+
+		if((*g_ptr_map)[ptr] != osize){
+			log_out("ERROR!!!!!!!!!!!!!!!! 2222222222");
+			sleep(10);
+			return ret;
+		}
+
+		g_ptr_map->erase(ptr);
+	}
+
+	if(ret != NULL){
+		if(g_ptr_map->find(ret) != g_ptr_map->end()){
+			log_out("ERROR!!!!!!!!!!!!!!!! 3333333333333");
+			sleep(10);
+			return ret;
+		}
+
+		(*g_ptr_map)[ret]= nsize;
+
+	}
+
+	return ret;
+}
+
+
 void *lj_alloc_f_hook(void *msp, void *ptr, size_t osize, size_t nsize){
 
 	
-	int  BLOCK_HEAD_SIZE = sizeof(_BLOCK_HDR);
+	int  BLOCK_HEAD_SIZE = sizeof(BLOCK_HDR);
 	(void)osize;
 	char* ret_ptr = NULL;
 
 	if(NULL == t_StackInfoArr){
 		t_StackInfoArr = NewStackInfoArray(105708417 , 20);
 	}
+
 
 
 	if(t_need_dump_idx != s_need_dump_idx){
@@ -115,18 +163,25 @@ void *lj_alloc_f_hook(void *msp, void *ptr, size_t osize, size_t nsize){
 		t_need_dump_idx = s_need_dump_idx;
 	}
 	
-	StackInfoNode* node = NULL;
+	 
 
 	if(ptr != NULL){
+		
+		//char* tmpbuf = malloc(100);
+		
+		//sprintf(tmpbuf, "free ptr=%p, osize=%lld, nsize=%lld\n", (char*)ptr - BLOCK_HEAD_SIZE, osize, nsize);
+		
+		//ffi_log_out(tmpbuf);
 
 		BLOCK_HDR* hdr = (BLOCK_HDR*)((char*)ptr - BLOCK_HEAD_SIZE);
 
 		if(hdr->magic != MAGIC){
 			log_out("lj_alloc_f_hook ptr magic error");
 		}else{
-			hdr->node->m_del_cnt++;
-			hdr->node->m_free_size += osize;
-
+			if(hdr->node != NULL){
+				hdr->node->m_del_cnt++;
+				hdr->node->m_free_size += osize;
+			}
 			__sync_fetch_and_add(&g_total_free_size, osize);
 			__sync_fetch_and_add(&g_total_free_cnt, 1);
 		}
@@ -134,14 +189,14 @@ void *lj_alloc_f_hook(void *msp, void *ptr, size_t osize, size_t nsize){
 	
 	if (nsize == 0) {
 		if(ptr != NULL){
-			  return s_mem_hook_addr(msp, (char*)ptr - BLOCK_HEAD_SIZE, osize + BLOCK_HEAD_SIZE , 0);
+			  return mem_hook_addr_wrap(msp, (char*)ptr - BLOCK_HEAD_SIZE, osize + BLOCK_HEAD_SIZE , 0);
 		}else{
-			  return s_mem_hook_addr(msp,NULL, osize + BLOCK_HEAD_SIZE , 0);
+			  return mem_hook_addr_wrap(msp,NULL, osize + BLOCK_HEAD_SIZE , 0);
 		}
 	} else if (ptr == NULL) {
-	  ret_ptr = (char*)s_mem_hook_addr(msp, ptr, 0 , nsize + BLOCK_HEAD_SIZE);
+	  ret_ptr = (char*)mem_hook_addr_wrap(msp, ptr, 0 , nsize + BLOCK_HEAD_SIZE);
 	} else {
-	  ret_ptr = (char*)s_mem_hook_addr(msp, (char*)ptr - BLOCK_HEAD_SIZE, osize + BLOCK_HEAD_SIZE , nsize + BLOCK_HEAD_SIZE);
+	  ret_ptr = (char*)mem_hook_addr_wrap(msp, (char*)ptr - BLOCK_HEAD_SIZE, osize + BLOCK_HEAD_SIZE , nsize + BLOCK_HEAD_SIZE);
 	}
 
 
@@ -152,8 +207,18 @@ void *lj_alloc_f_hook(void *msp, void *ptr, size_t osize, size_t nsize){
 
 	hdr->magic = MAGIC;
 
-	hdr->node = CurrentStackInfoNode(t_StackInfoArr);
+	if(g_has_started == 1){
+		hdr->node = CurrentStackInfoNode(t_StackInfoArr);
+	}else{
+		hdr->node = NULL;
+	}
+	/*char* tmpbuf = malloc(100);
+	
+	sprintf(tmpbuf, "alloc ptr=%p, osize=%lld, nsize=%lld\n", ret_ptr, osize, nsize);
+	
+	ffi_log_out(tmpbuf);*/
 
+	return ((char*)ret_ptr + BLOCK_HEAD_SIZE);
 
 }
 
@@ -204,11 +269,16 @@ static char* ctl_thread_handle(char* cmd){
 
 	char* res = (char*)malloc(1000);
 
-	if(strcmp(cmd, "show") == 0){
-		sprintf(res, "unfree size:%lld, total_alloc_size:%lld, total_free_size:%lld, total_alloc_cnt:%lld, total_free_cnt:%lld\n",g_total_alloc_size - g_total_free_size, g_total_alloc_size, g_total_free_size, g_total_alloc_cnt, g_total_free_cnt);
-	}else if(strcmp(cmd, "dump") == 0){
+	if(strncmp(cmd, "show", 4) == 0){
+		sprintf(res, "unfree size:%d, total_alloc_size:%d, total_free_size:%d, total_alloc_cnt:%d, total_free_cnt:%d\n",(int)(g_total_alloc_size - g_total_free_size), (int)g_total_alloc_size, (int)g_total_free_size, (int)g_total_alloc_cnt, (int)g_total_free_cnt);
+	}else if(strncmp(cmd, "dump", 4) == 0){
 		s_need_dump_idx ++;
 		sprintf(res, "s_need_dump_idx=%d", s_need_dump_idx);
+	}else if(strncmp(cmd, "start", 5) == 0){
+		g_has_started = 1;
+		sprintf(res, "g_has_started=%d", g_has_started);
+	}else{
+		sprintf(res, "done!!!");
 	}
 	
 	
@@ -245,6 +315,8 @@ void __attribute__((constructor)) Init()
 
 
 	lua_State *L =  luaL_newstate();
+
+	InitStackModule();
 	
 	luaL_openlibs(L);	
  	lua_register(L, "get_so_load_base", get_so_load_base);
