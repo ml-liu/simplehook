@@ -209,6 +209,8 @@ void *lj_alloc_f_hook(void *msp, void *ptr, size_t osize, size_t nsize){
 
 	if(g_has_started == 1){
 		hdr->node = CurrentStackInfoNode(t_StackInfoArr);
+		hdr->node->m_alloc_size += nsize;
+		hdr->node->m_add_cnt += 1;
 	}else{
 		hdr->node = NULL;
 	}
