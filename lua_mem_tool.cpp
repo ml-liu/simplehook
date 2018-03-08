@@ -83,7 +83,7 @@ int s_need_dump_idx = 0;
 
 
 __thread int t_need_dump_idx = 0;
-
+std::map<void*, void*> t_luaStateMap;
 
 
 /************************** 
@@ -97,15 +97,33 @@ static lj_alloc_f_hook_type s_mem_hook_addr = NULL;
 __thread std::map<void*, int>* g_ptr_map;
 
 
+typedef int (*lua_getstack_type)(lua_State *L, int level, lua_Debug *ar);
+typedef int (*lua_getinfo_type)(lua_State *L, const char *what, lua_Debug *ar);
+typedef int  (*lua_sethook_type)(void*, void*, int mask, int count);
+
+lua_getstack_type s_lua_getstack = NULL;
+lua_getinfo_type  s_lua_getinfo = NULL;
+lua_sethook_type s_lua_sethook = NULL;
+
+
+__thread char* t_luainfo = NULL;
+
+
+static void callhook(lua_State *L, lua_Debug *ar){
+	if(NULL ==  t_luainfo){
+		t_luainfo = (char*)malloc(128);
+	}
+	s_lua_getinfo(L, "lnS", ar);
+	snprintf(t_luainfo, 127, "%s:%d:%s", ar->source, ar->linedefined, ar->name); 
+	t_luainfo[127] = '\0';
+}
+
 
 void *mem_hook_addr_wrap(void *msp, void *ptr, size_t osize, size_t nsize){
 
 	if(NULL == g_ptr_map){
 		g_ptr_map = new std::map<void*, int>;
 	}
-
-
-	
 
 	void* ret =  s_mem_hook_addr(msp, ptr, osize, nsize);
 
@@ -138,6 +156,8 @@ void *mem_hook_addr_wrap(void *msp, void *ptr, size_t osize, size_t nsize){
 
 	return ret;
 }
+
+
 
 
 void *lj_alloc_f_hook(void *msp, void *ptr, size_t osize, size_t nsize){
@@ -207,8 +227,19 @@ void *lj_alloc_f_hook(void *msp, void *ptr, size_t osize, size_t nsize){
 
 	hdr->magic = MAGIC;
 
+	 
+
 	if(g_has_started == 1){
-		hdr->node = CurrentStackInfoNode(t_StackInfoArr);
+
+		lua_Debug ar;
+
+		char* luainfo = NULL;
+		
+		if(t_luaStateMap[msp] && s_lua_getstack(t_luaStateMap[msp], 0, &ar) == 1 ){
+			luainfo = t_luainfo;
+		}
+		
+		hdr->node = CurrentStackInfoNode(t_StackInfoArr, luainfo);
 		hdr->node->m_alloc_size += nsize;
 		hdr->node->m_add_cnt += 1;
 	}else{
@@ -237,7 +268,19 @@ void* lj_state_newstate_hook(void* a, void* b)
 
 	s_mem_hook_addr = (lj_alloc_f_hook_type)a;
 	
-	return 	s_newstate_fun((void*)lj_alloc_f_hook, b);
+	void* ret = 	s_newstate_fun((void*)lj_alloc_f_hook, b);
+
+	t_luaStateMap[b] = ret;
+
+	char* logbuf = (char*)malloc(100);
+	
+	sprintf(logbuf, "msp:%p, luastate is %p", b, ret);
+	
+	ffi_log_out(logbuf);
+
+	lua_sethook(ret, (lua_Hook)callhook, LUA_MASKCALL | LUA_MASKRET, 0);
+
+	return ret;
 	
 }
 
@@ -249,9 +292,16 @@ void* lj_state_newstate_hook(void* a, void* b)
 
 int hook_luajit_mem(lua_State* L){
 
-	long new_fun_ptr = (long)(lua_tonumber(L, -1));
+	long new_fun_ptr  = (long)(lua_tonumber(L, -4));
+	long getstack_ptr = (long)(lua_tonumber(L, -3));
+	long getinfo_ptr  = (long)(lua_tonumber(L, -2));
+	long sethook_ptr  = (long)(lua_tonumber(L, -1));	
+
 	
 	s_newstate_fun = (lj_state_newstate_hook_type)(void*)new_fun_ptr;
+	s_lua_getstack = (lua_getstack_type)getstack_ptr;
+	s_lua_getinfo = (lua_getinfo_type)getinfo_ptr;
+	s_lua_sethook = (lua_sethook_type)sethook_ptr;
 
 	funchook_t *fork_ft = funchook_create();
 	funchook_prepare(fork_ft, (void**)&s_newstate_fun, (void*)lj_state_newstate_hook);

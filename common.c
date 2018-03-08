@@ -293,18 +293,27 @@ StackInfoArray* NewStackInfoArray(int size, int stackLimit){
 }
 
 
-StackInfoNode* CurrentStackInfoNode(StackInfoArray* m){
+StackInfoNode* CurrentStackInfoNode(StackInfoArray* m, const char* luainfo){
 	pthread_mutex_lock(&g_backtrace_mutex);	
     int stackId;
 	unsigned long stackHash = 0;
     static void* currentStack[MAX_STACK_LIMIT];
+
+	memset(currentStack, 0, sizeof(currentStack));
+	
     int stackSize;
 
 	int i;
 
- 	
-    stackSize = backtrace(currentStack, m->m_stackLimit);
- 
+	int flag = 0;
+
+ 	if(NULL != luainfo){
+		stackSize = (strlen(luainfo) + sizeof(void*) - 1) / sizeof(void*);
+		strncpy(currentStack, luainfo, sizeof(currentStack) - 1);
+		flag = 1;
+ 	}else{
+ 	   	stackSize = backtrace(currentStack, m->m_stackLimit);
+ 	}
 	stackHash = HashFn(currentStack,stackSize , m);
 
 	stackId = stackHash%m->m_size;
@@ -312,7 +321,7 @@ StackInfoNode* CurrentStackInfoNode(StackInfoArray* m){
 	StackInfoNode** pn = &m->m_array[stackId];
 
 	while(*pn != NULL){
-		if((*pn)->m_stack_size == stackSize && (*pn)->m_hash == stackHash){
+		if((*pn)->m_flag == flag && (*pn)->m_stack_size == stackSize && (*pn)->m_hash == stackHash){
 
 			for(i = 0; i < stackSize; i++){
 				if((*pn)->m_stack_data[i] != currentStack[i])
@@ -341,6 +350,8 @@ StackInfoNode* CurrentStackInfoNode(StackInfoArray* m){
 	n->m_stack_size = stackSize;
 
 	n->m_hash = stackHash;
+
+	n->m_flag = flag;
 
 	*pn = n;
 	pthread_mutex_unlock(&g_backtrace_mutex);  
@@ -394,6 +405,12 @@ void DumpStackInfoArray(StackInfoArray* m, const char* fileName){
 		fprintf(f, "\nunfree size:%d, alloc_size :%d, free_size:%d , ref count: %d, total alloc count: %d, total free count: %d\n, ", (int)(n->m_alloc_size - n->m_free_size), (int)n->m_alloc_size, (int)n->m_free_size,  (int)(n->m_add_cnt-n->m_del_cnt),(int)n->m_add_cnt,(int)n->m_del_cnt);
 		char** strings = backtrace_symbols(n->m_stack_data, n->m_stack_size);
 		fprintf(f, "stack: \n");
+
+		if(n->m_flag == 1){
+			fprintf(f, "LUA:%s\n", (char*)n->m_stack_data);
+			n = (StackInfoNode*)Dequeue(q);
+			continue;
+		}
 		
 		
 		int stack_idx = 0;

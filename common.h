@@ -34,6 +34,8 @@ typedef struct _StackInfoNode{
 	struct _StackInfoNode* m_next;
 
 	unsigned long m_hash;
+
+	int   m_flag; // 0 for C addr backtrace, 1 for lua Source line..
 	
 }StackInfoNode;
 
@@ -47,9 +49,11 @@ typedef struct _StackInfoArray{
 	
 }StackInfoArray;
 
+
+
 void InitStackModule();
 StackInfoArray* NewStackInfoArray(int size, int stackLimit);
-StackInfoNode* CurrentStackInfoNode(StackInfoArray* m);
+StackInfoNode* CurrentStackInfoNode(StackInfoArray* m, const char* luainfo);
 void DumpStackInfoArray(StackInfoArray* m, const char* fileName);
 
 typedef char* (*ctl_thread_handle_fun)(char* cmd);
