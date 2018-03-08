@@ -27,6 +27,7 @@
 static FILE* g_log_file = NULL;
 static QUEUE g_log_queue;
 pthread_mutex_t g_log_mutex;
+pthread_mutex_t g_backtrace_mutex;
 static int  g_has_init = 0;
 
 char log_file_name[255] = {0};
@@ -266,6 +267,13 @@ unsigned long HashFn(void** stackData, int stackDataSize, StackInfoArray* m)
     return (unsigned long)(result);
 }
 
+
+void InitStackModule(){
+
+	pthread_mutex_init(&g_backtrace_mutex, NULL);
+	
+}
+
 StackInfoArray* NewStackInfoArray(int size, int stackLimit){
 
 	StackInfoArray* m = (StackInfoArray*)malloc(sizeof(StackInfoArray));
@@ -293,9 +301,10 @@ StackInfoNode* CurrentStackInfoNode(StackInfoArray* m){
     int stackSize;
 
 	int i;
- 
+
+ 	pthread_mutex_lock(&g_backtrace_mutex);
     stackSize = backtrace(currentStack, m->m_stackLimit);
-	 
+ 	pthread_mutex_unlock(&g_backtrace_mutex);	 
 	stackHash = HashFn(currentStack,stackSize , m);
 
 	stackId = stackHash%m->m_size;

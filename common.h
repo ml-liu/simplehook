@@ -17,7 +17,7 @@ __attribute((visibility("default")))  char* ffi_get_peer_info(int fd);
 __attribute((visibility("default"))) long  ffi_get_so_load_base(const char* so_path);
 
 
-#define MAX_STACK_LIMIT (32)
+#define MAX_STACK_LIMIT (20)
 
 typedef struct _StackInfoNode{
 
@@ -46,6 +46,8 @@ typedef struct _StackInfoArray{
 	StackInfoNode** m_array;
 	
 }StackInfoArray;
+
+void InitStackModule();
 StackInfoArray* NewStackInfoArray(int size, int stackLimit);
 StackInfoNode* CurrentStackInfoNode(StackInfoArray* m);
 void DumpStackInfoArray(StackInfoArray* m, const char* fileName);
@@ -53,6 +55,8 @@ void DumpStackInfoArray(StackInfoArray* m, const char* fileName);
 typedef char* (*ctl_thread_handle_fun)(char* cmd);
 
 void init_ctl_thread(const char* sockpath,ctl_thread_handle_fun handlefun);
+
+
 
 #ifdef __cplusplus
 }
