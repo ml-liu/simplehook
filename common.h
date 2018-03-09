@@ -21,12 +21,12 @@ __attribute((visibility("default"))) long  ffi_get_so_load_base(const char* so_p
 
 typedef struct _StackInfoNode{
 
-	int m_add_cnt;
+	long long m_add_cnt;
 
-	int m_del_cnt;
-	int m_alloc_size;
+	long long m_del_cnt;
+	long long m_alloc_size;
 
-	int m_free_size;
+	long long m_free_size;
 	void* m_stack_data[MAX_STACK_LIMIT];
 
 	int m_stack_size;

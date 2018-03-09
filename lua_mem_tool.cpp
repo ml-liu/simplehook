@@ -70,13 +70,13 @@ typedef struct _BLOCK_HDR
 __thread StackInfoArray* t_StackInfoArr = NULL;
 
 
-size_t g_total_alloc_size = 0;
+long long g_total_alloc_size = 0;
 
-size_t g_total_free_size = 0;
+long long g_total_free_size = 0;
 
-size_t g_total_alloc_cnt = 0;
+long long g_total_alloc_cnt = 0;
 
-size_t g_total_free_cnt = 0;
+long long g_total_free_cnt = 0;
 
 int g_has_started = 0;
 int s_need_dump_idx = 0;
@@ -322,7 +322,7 @@ static char* ctl_thread_handle(char* cmd){
 	char* res = (char*)malloc(1000);
 
 	if(strncmp(cmd, "show", 4) == 0){
-		sprintf(res, "unfree size:%d, total_alloc_size:%d, total_free_size:%d, total_alloc_cnt:%d, total_free_cnt:%d\n",(int)(g_total_alloc_size - g_total_free_size), (int)g_total_alloc_size, (int)g_total_free_size, (int)g_total_alloc_cnt, (int)g_total_free_cnt);
+		sprintf(res, "unfree size:%lld, total_alloc_size:%lld, total_free_size:%lld, total_alloc_cnt:%lld, total_free_cnt:%lld\n",(g_total_alloc_size - g_total_free_size), g_total_alloc_size, g_total_free_size, g_total_alloc_cnt,g_total_free_cnt);
 	}else if(strncmp(cmd, "dump", 4) == 0){
 		s_need_dump_idx ++;
 		sprintf(res, "s_need_dump_idx=%d", s_need_dump_idx);
