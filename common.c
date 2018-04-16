@@ -23,7 +23,7 @@
 #include "arpa/inet.h"
 #include "BoundedPriQueue.h"
 
-#define MAX_LOG_QUEUE_SIZE (100000)
+#define MAX_LOG_QUEUE_SIZE (1000000)
 static FILE* g_log_file = NULL;
 static QUEUE g_log_queue;
 pthread_mutex_t g_log_mutex;
@@ -82,6 +82,11 @@ void* log_thread(void* data){
 
 	g_log_file = fopen(log_file_name,"w");
 
+	#define LOG_BUFFER_CACHE_SIZE (1024*128)
+
+	static char s_buffer[LOG_BUFFER_CACHE_SIZE + LOG_BUFFER_CACHE_SIZE + 10] = {0};
+	int cur_pos = 0;
+
 	while(1){
 
 		char* str = NULL;
@@ -90,17 +95,42 @@ void* log_thread(void* data){
 		queue_pop_without_dealloc(&g_log_queue, (void**)&str);
 		pthread_mutex_unlock(&g_log_mutex);
 
-		if(str != NULL){
-			
-			fprintf(g_log_file, "%s\n", str);
 
-			fflush(g_log_file);
-			free(str);
-
+		if (NULL == str){
+			usleep(10);
 			continue;
 		}
 
-		usleep(10);
+
+		int need_flush_cache = 0;
+		int need_direct_write = 0;
+
+		if(strlen(str) >= (LOG_BUFFER_CACHE_SIZE)){
+			need_flush_cache = 1;
+			need_direct_write = 1;
+		}
+
+		if(cur_pos >= LOG_BUFFER_CACHE_SIZE){
+			need_flush_cache = 1;
+		}
+		
+
+		if(cur_pos > 0 && need_flush_cache){
+			fwrite(s_buffer, cur_pos, 1, g_log_file);
+			fflush(g_log_file);
+			cur_pos = 0;
+		}
+		
+	 
+		if( need_direct_write ){
+			fprintf(g_log_file, "%s\n", str);
+			fflush(g_log_file);
+		}else{
+			cur_pos += sprintf(s_buffer + cur_pos, "%s\n", str);
+		}
+
+		free(str);
+
 	}
 
 	return NULL;

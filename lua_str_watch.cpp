@@ -57,6 +57,8 @@ int log_out(const char* str){
 }
 
 
+int g_started = 0;
+
 
 
 typedef void * (*type_lua_str_new)(void *L, const char *str, size_t lenx);
@@ -65,7 +67,9 @@ type_lua_str_new s_new_str = NULL;
 
 void * lua_str_new(void *L, const char *str, size_t lenx){
 
-	log_out(str);
+	if(g_started == 1){
+		log_out(str);
+	}
 
 	return s_new_str(L, str, lenx);
 }
@@ -95,6 +99,7 @@ static char* ctl_thread_handle(char* cmd){
 	char* res = (char*)malloc(1000);
 
 	if(strncmp(cmd, "start", 5) == 0){
+		g_started = 1;
 		sprintf(res, "willstart watch newstr");
 	}else{
 		strcpy(res, "unknown command!");	
@@ -140,7 +145,7 @@ void __attribute__((constructor)) Init()
 	lua_register(L, "hook_newstr", hook_newstr);
 	luaL_dofile(L, "hook.lua");
 
-	init_ctl_thread("/tmp/luameme.sock", ctl_thread_handle);
+	init_ctl_thread("/tmp/luastr.sock", ctl_thread_handle);
 	
 	/*
 	int ret=pthread_create(&id_1,NULL,(void  *) try_hook_thread,NULL);
