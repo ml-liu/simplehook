@@ -137,7 +137,7 @@ void __attribute__((constructor)) Init()
 	
 	luaL_openlibs(L);	
  	lua_register(L, "get_so_load_base", get_so_load_base);
-	lua_register(L, "hook_luajit_mem", hook_newstr);
+	lua_register(L, "hook_newstr", hook_newstr);
 	luaL_dofile(L, "hook.lua");
 
 	init_ctl_thread("/tmp/luameme.sock", ctl_thread_handle);
