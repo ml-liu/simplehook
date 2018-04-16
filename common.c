@@ -115,7 +115,7 @@ void* log_thread(void* data){
 		}
 		
 
-		if(cur_pos > 0 && need_flush_cache){
+		if(cur_pos > 0 && need_flush_cache){ 
 			fwrite(s_buffer, cur_pos, 1, g_log_file);
 			fflush(g_log_file);
 			cur_pos = 0;

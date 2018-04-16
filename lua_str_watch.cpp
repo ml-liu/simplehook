@@ -78,7 +78,7 @@ int hook_newstr(lua_State* L){
 
 	long fun_ptr  = (long)(lua_tonumber(L, -1));
 
-	s_new_str = (type_lua_str_new)(void*)fun_ptr;
+	s_new_str = (type_lua_str_new)(void*)fun_ptr; 
 
 	funchook_t *fork_ft = funchook_create();
 	funchook_prepare(fork_ft, (void**)&s_new_str, (void*)lua_str_new);
