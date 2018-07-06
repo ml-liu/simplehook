@@ -87,7 +87,7 @@ std::map<void*, void*> t_luaStateMap;
 
 
 /************************** 
-luajitµÄlj_alloc_fº¯ÊıÓÉÓÚÆäÌØÊâĞÔ£¬ÎŞ·¨±»HOOK(ĞèÒª¸üĞÂHOOK¿â£¬ÓÉÓÚ¸ÃÇéĞÎ½ÏÉÙ·¢Éú£¬ËùÒÔÔİÊ±²»¸üĞÂHOOK¿â£¬¼òµ¥¹æ±Ü)
+luajitçš„lj_alloc_få‡½æ•°ç”±äºå…¶ç‰¹æ®Šæ€§ï¼Œæ— æ³•è¢«HOOK(éœ€è¦æ›´æ–°HOOKåº“ï¼Œç”±äºè¯¥æƒ…å½¢è¾ƒå°‘å‘ç”Ÿï¼Œæ‰€ä»¥æš‚æ—¶ä¸æ›´æ–°HOOKåº“ï¼Œç®€å•è§„é¿)
 *******************************/
 
 typedef void * (*lj_alloc_f_hook_type)(void *msp, void *ptr, size_t osize, size_t nsize);
@@ -278,7 +278,7 @@ void* lj_state_newstate_hook(void* a, void* b)
 	
 	ffi_log_out(logbuf);
 
-	lua_sethook(ret, (lua_Hook)callhook, LUA_MASKCALL | LUA_MASKRET, 0);
+	s_lua_sethook(ret, (lua_Hook)callhook, LUA_MASKCALL | LUA_MASKRET, 0);
 
 	return ret;
 	
