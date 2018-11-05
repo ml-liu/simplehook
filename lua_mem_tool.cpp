@@ -1,5 +1,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
+
+#include <unistd.h>
+
 #include <sys/un.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -29,6 +32,7 @@
 #include <fcntl.h>
 
 
+
 extern "C" {
 #include <sys/epoll.h>
 #include "arpa/inet.h"
@@ -38,6 +42,22 @@ extern "C" {
 #include "lualib.h"
 
 }
+
+
+struct LuaStateMemState{
+	unsigned long long m_mem;
+	void* m_state_ptr;
+	unsigned long long    m_tid;
+};
+
+pthread_mutex_t g_global_lock;
+
+#define MAX_LUA_STATE_COUNT 1000
+
+int g_lua_lua_state_idx = 0;
+
+LuaStateMemState g_lua_state_arr[MAX_LUA_STATE_COUNT];
+
 
 
 int log_out(const char* str){
@@ -108,6 +128,10 @@ lua_sethook_type s_lua_sethook = NULL;
 
 __thread char* t_luainfo = NULL;
 
+unsigned long long g_total_alloc_lua_mem = 0;
+
+unsigned long long g_total_free_lua_mem = 0;
+
 
 static void callhook(lua_State *L, lua_Debug *ar){
 	if(NULL ==  t_luainfo){
@@ -119,139 +143,56 @@ static void callhook(lua_State *L, lua_Debug *ar){
 }
 
 
-void *mem_hook_addr_wrap(void *msp, void *ptr, size_t osize, size_t nsize){
 
-	if(NULL == g_ptr_map){
-		g_ptr_map = new std::map<void*, int>;
-	}
-
-	void* ret =  s_mem_hook_addr(msp, ptr, osize, nsize);
-
-	if(ptr != NULL){
-		if(g_ptr_map->find(ptr) == g_ptr_map->end()){
-			log_out("ERROR!!!!!!!!!!!!!!!!");
-			sleep(10);
-			return ret;
-		}
-
-		if((*g_ptr_map)[ptr] != osize){
-			log_out("ERROR!!!!!!!!!!!!!!!! 2222222222");
-			sleep(10);
-			return ret;
-		}
-
-		g_ptr_map->erase(ptr);
-	}
-
-	if(ret != NULL){
-		if(g_ptr_map->find(ret) != g_ptr_map->end()){
-			log_out("ERROR!!!!!!!!!!!!!!!! 3333333333333");
-			sleep(10);
-			return ret;
-		}
-
-		(*g_ptr_map)[ret]= nsize;
-
-	}
-
-	return ret;
-}
 
 
 
 
 void *lj_alloc_f_hook(void *msp, void *ptr, size_t osize, size_t nsize){
 
-	
-	int  BLOCK_HEAD_SIZE = sizeof(BLOCK_HDR);
-	(void)osize;
-	char* ret_ptr = NULL;
+	void* newPtr = NULL;
 
-	if(NULL == t_StackInfoArr){
-		t_StackInfoArr = NewStackInfoArray(105708417 , 20);
-	}
+	int state_idx = (int)msp;
 
 
-
-	if(t_need_dump_idx != s_need_dump_idx){
-		char filename[100];
-
-		sprintf(filename, "/tmp/luamem.%d.txt",(int)pthread_self());
-		
-		DumpStackInfoArray(t_StackInfoArr, filename);
-
-		t_need_dump_idx = s_need_dump_idx;
-	}
-	
-	 
-
-	if(ptr != NULL){
-		
-		//char* tmpbuf = malloc(100);
-		
-		//sprintf(tmpbuf, "free ptr=%p, osize=%lld, nsize=%lld\n", (char*)ptr - BLOCK_HEAD_SIZE, osize, nsize);
-		
-		//ffi_log_out(tmpbuf);
-
-		BLOCK_HDR* hdr = (BLOCK_HDR*)((char*)ptr - BLOCK_HEAD_SIZE);
-
-		if(hdr->magic != MAGIC){
-			log_out("lj_alloc_f_hook ptr magic error");
-		}else{
-			if(hdr->node != NULL){
-				hdr->node->m_del_cnt++;
-				hdr->node->m_free_size += osize;
-			}
-			__sync_fetch_and_add(&g_total_free_size, osize);
-			__sync_fetch_and_add(&g_total_free_cnt, 1);
-		}
-	}
-	
-	if (nsize == 0) {
-		if(ptr != NULL){
-			  return mem_hook_addr_wrap(msp, (char*)ptr - BLOCK_HEAD_SIZE, osize + BLOCK_HEAD_SIZE , 0);
-		}else{
-			  return mem_hook_addr_wrap(msp,NULL, osize + BLOCK_HEAD_SIZE , 0);
-		}
-	} else if (ptr == NULL) {
-	  ret_ptr = (char*)mem_hook_addr_wrap(msp, ptr, 0 , nsize + BLOCK_HEAD_SIZE);
-	} else {
-	  ret_ptr = (char*)mem_hook_addr_wrap(msp, (char*)ptr - BLOCK_HEAD_SIZE, osize + BLOCK_HEAD_SIZE , nsize + BLOCK_HEAD_SIZE);
-	}
-
-
-	__sync_fetch_and_add(&g_total_alloc_cnt, 1);
-	__sync_fetch_and_add(&g_total_alloc_size, nsize);
-
-	BLOCK_HDR* hdr = (BLOCK_HDR*)ret_ptr;
-
-	hdr->magic = MAGIC;
-
-	 
-
-	if(g_has_started == 1){
-
-		lua_Debug ar;
-
-		char* luainfo = NULL;
-		
-		if(t_luaStateMap[msp] && s_lua_getstack(t_luaStateMap[msp], 0, &ar) == 1 ){
-			luainfo = t_luainfo;
-		}
-		
-		hdr->node = CurrentStackInfoNode(t_StackInfoArr, luainfo);
-		hdr->node->m_alloc_size += nsize;
-		hdr->node->m_add_cnt += 1;
+	if(g_lua_state_arr[state_idx].m_tid == 0){
+		g_lua_state_arr[state_idx].m_tid = pthread_self();
 	}else{
-		hdr->node = NULL;
+		if(g_lua_state_arr[state_idx].m_tid!= pthread_self()){
+			exit(0);
+		}
 	}
-	/*char* tmpbuf = malloc(100);
 	
-	sprintf(tmpbuf, "alloc ptr=%p, osize=%lld, nsize=%lld\n", ret_ptr, osize, nsize);
-	
-	ffi_log_out(tmpbuf);*/
+	if(ptr != NULL){
+		__sync_fetch_and_add(&g_total_free_lua_mem, osize);
+		__sync_fetch_and_sub(&g_lua_state_arr[state_idx].m_mem, osize);
+		
+	}
 
-	return ((char*)ret_ptr + BLOCK_HEAD_SIZE);
+	if(nsize != 0){
+		__sync_fetch_and_add(&g_total_alloc_lua_mem, nsize);
+		__sync_fetch_and_add(&g_lua_state_arr[state_idx].m_mem, nsize);
+	}
+	
+	if (nsize == 0)
+	{
+		if(ptr != NULL){
+		 
+			free(ptr);
+		}
+	
+		
+		newPtr =  NULL;
+	}
+	else
+	{
+		
+		newPtr = (void*)realloc(ptr, nsize);;
+	}
+
+	
+
+	return newPtr;
 
 }
 
@@ -267,10 +208,18 @@ void* lj_state_newstate_hook(void* a, void* b)
 {
 
 	s_mem_hook_addr = (lj_alloc_f_hook_type)a;
-	
-	void* ret = 	s_newstate_fun((void*)lj_alloc_f_hook, b);
 
-	t_luaStateMap[b] = ret;
+	int cur_idx = __sync_fetch_and_add(&g_lua_lua_state_idx, 1);
+
+	if(cur_idx >= MAX_LUA_STATE_COUNT){
+		exit(-1);
+	}
+	
+	void* ret = 	s_newstate_fun((void*)lj_alloc_f_hook, (void*)cur_idx);
+
+	g_lua_state_arr[cur_idx].m_state_ptr = ret;
+
+	//t_luaStateMap[b] = ret;
 
 	char* logbuf = (char*)malloc(100);
 	
@@ -278,7 +227,7 @@ void* lj_state_newstate_hook(void* a, void* b)
 	
 	ffi_log_out(logbuf);
 
-	s_lua_sethook(ret, (lua_Hook)callhook, LUA_MASKCALL | LUA_MASKRET, 0);
+	//s_lua_sethook(ret, (lua_Hook)callhook, LUA_MASKCALL | LUA_MASKRET, 0);
 
 	return ret;
 	
@@ -318,12 +267,33 @@ static char* ctl_thread_handle(char* cmd){
 	char* buff = (char*)malloc(1000);
 	strcpy(buff, cmd);
 	ffi_log_out(buff);
+	int i = 0;
 
-	char* res = (char*)malloc(1000);
+	int cur_pos = 0;
+
+	char* res = (char*)malloc(1024*10240);
 
 	if(strncmp(cmd, "show", 4) == 0){
 		sprintf(res, "unfree size:%lld, total_alloc_size:%lld, total_free_size:%lld, total_alloc_cnt:%lld, total_free_cnt:%lld\n",(g_total_alloc_size - g_total_free_size), g_total_alloc_size, g_total_free_size, g_total_alloc_cnt,g_total_free_cnt);
-	}else if(strncmp(cmd, "dump", 4) == 0){
+	}
+	else if(strncmp(cmd, "luamem", 6) == 0){
+		cur_pos += sprintf(res, "lua alloc:%llu lua free:%llu lua unfree:%llu\n",g_total_alloc_lua_mem,g_total_free_lua_mem, g_total_alloc_lua_mem-g_total_free_lua_mem);
+
+		std::map<unsigned long long, unsigned long long> s;
+		
+		for(i = 0; i < g_lua_lua_state_idx; i++){
+			cur_pos += sprintf(res + cur_pos, "[%llu][%p] luamem:%llu\n", g_lua_state_arr[i].m_tid, g_lua_state_arr[i].m_state_ptr, g_lua_state_arr[i].m_mem);
+
+			s[g_lua_state_arr[i].m_tid] += g_lua_state_arr[i].m_mem;
+		}	
+
+		for(std::map<unsigned long long, unsigned long long>::iterator it = s.begin(); it != s.end(); ++it)
+			{
+				cur_pos += sprintf(res + cur_pos, "[%llu] luamem:%llu\n", it->first, it->second);
+			}
+		
+	}
+	else if(strncmp(cmd, "dump", 4) == 0){
 		s_need_dump_idx ++;
 		sprintf(res, "s_need_dump_idx=%d", s_need_dump_idx);
 	}else if(strncmp(cmd, "start", 5) == 0){
@@ -357,6 +327,8 @@ void __attribute__((constructor)) Init()
 	funchook_t *fork_ft = funchook_create();
 	log_init(NULL);
 
+	memset(g_lua_state_arr, 0, sizeof(g_lua_state_arr));
+
 
 	funchook_set_debug_file("funchook.log");
 	void  (*RealFork)(void);
@@ -372,7 +344,7 @@ void __attribute__((constructor)) Init()
 	
 	luaL_openlibs(L);	
  	lua_register(L, "get_so_load_base", get_so_load_base);
-	lua_register(L, "hook_luajit_mem", hook_luajit_mem);
+	lua_register(L, "hook_lua_mem", hook_luajit_mem);
 	luaL_dofile(L, "hook.lua");
 
 	init_ctl_thread("/tmp/luameme.sock", ctl_thread_handle);
