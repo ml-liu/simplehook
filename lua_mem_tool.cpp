@@ -34,7 +34,7 @@
 #include "netinet/in.h"
 #include <unistd.h>
 #include <fcntl.h>
-
+#include <vector>
 
 
 extern "C" {
@@ -46,6 +46,42 @@ extern "C" {
 #include "lualib.h"
 
 }
+
+
+#define MYASSERT(a) do{\
+	if(!(a)){\
+		printf("%s ERROR!!!!\n", #a);\
+		exit(0);\
+		}\
+		}while(0);
+
+__thread std::vector<std::string>* t_require_vec = NULL;
+
+std::vector<std::string>& get_require_vec()
+{
+	if(t_require_vec == NULL){
+		printf("new vector");
+		t_require_vec = new std::vector<std::string>;
+	}
+
+	return *t_require_vec;
+}
+
+
+
+__thread std::vector<std::string>* t_seacher_Lua_vec = NULL;
+
+std::vector<std::string>& get_seacher_Lua_vec()
+{
+	if(t_seacher_Lua_vec == NULL){
+		printf("new vector");
+		t_seacher_Lua_vec = new std::vector<std::string>;
+	}
+
+	return *t_seacher_Lua_vec;
+}
+
+
 
 
 struct LuaStateMemState{
@@ -87,6 +123,9 @@ int log_out(const char* str){
 
 
 
+
+
+
 typedef struct _BLOCK_HDR
 {
     long  magic;
@@ -125,20 +164,42 @@ static lj_alloc_f_hook_type s_mem_hook_addr = NULL;
 
 __thread std::map<void*, int>* g_ptr_map;
 
+typedef int (*ll_require_type) (lua_State *L);
+typedef const char * (*luaL_checklstring_type) (lua_State *L, int arg, size_t *len);
 
+typedef int (*searcher_Lua_type) (lua_State *L);
 typedef int (*lua_getstack_type)(lua_State *L, int level, lua_Debug *ar);
 typedef int (*lua_getinfo_type)(lua_State *L, const char *what, lua_Debug *ar);
 typedef int  (*lua_sethook_type)(void*, void*, int mask, int count);
 typedef void* (*lua_tocfunction_type) (void *L, int idx);
 lua_tocfunction_type s_lua_tocfunction = NULL;
 
+typedef int (*luaD_rawrunprotected_type) (lua_State *L, void* f, void *ud) ;
+
 typedef void  (*lua_settop_type)(void *L, int idx);
 lua_settop_type s_lua_settop = NULL;
+
+luaD_rawrunprotected_type s_luaD_rawrunprotected = NULL;
 
 
 lua_getstack_type s_lua_getstack = NULL;
 lua_getinfo_type  s_lua_getinfo = NULL;
 lua_sethook_type s_lua_sethook = NULL;
+
+
+ll_require_type s_ll_require = NULL;
+ll_require_type s_old_ll_require = NULL;
+
+
+searcher_Lua_type s_searcher_Lua = NULL;
+searcher_Lua_type s_old_searcher_Lua = NULL;
+
+
+
+
+
+luaL_checklstring_type s_luaL_checklstring = NULL;
+
 
 
 __thread char* t_luainfo = NULL;
@@ -512,6 +573,9 @@ StackStatData* dumpstack(void* luaState, lua_Debug *var){
 
 	StackData m_stack_data;
 
+	int require_idx = 0;
+	int searchLua_idx = 0;
+
 	
 	while(luaState != NULL && s_lua_getstack(luaState, level, &ar) == 1)
 		{
@@ -530,19 +594,19 @@ StackStatData* dumpstack(void* luaState, lua_Debug *var){
 				if( ar.source &&  strcmp(ar.source, "=[C]") == 0)
 				{ 
 			     	void* cfun = s_lua_tocfunction(luaState, -1);
-					 snprintf(t_luaStack, 98, "CFUN  %p",  cfun);
-					 
-		 
-						
-					//printf("cfun = %p\n", cfun);
-					/*					
-					Dl_info info;
-					memset(&info, 0, sizeof(info));
-					dladdr(cfun, &info);        
-			    	int xx =  (int)((unsigned  int)cfun - (unsigned int )info.dli_fbase);
-					*/ 
-	
-					//printf("%s\n", t_luaStack);
+
+					if(cfun == s_old_ll_require){
+						MYASSERT(require_idx < get_require_vec().size());
+						snprintf(t_luaStack , 98, "ll_require(%s)", get_require_vec()[get_require_vec().size() - 1 - require_idx].c_str());
+						require_idx++;
+					}else if(cfun == s_old_searcher_Lua){
+						MYASSERT(searchLua_idx < get_seacher_Lua_vec().size());
+						snprintf(t_luaStack , 98, "searcher_Lua(%s)", get_seacher_Lua_vec()[get_seacher_Lua_vec().size() - 1 - searchLua_idx].c_str());
+						searchLua_idx ++;
+					}
+					else{
+						snprintf(t_luaStack, 98, "CFUN  %p",  cfun);
+					}
 				}else{
 					snprintf(t_luaStack , 127, "%s(%d):%s", t_tmpbuff, ar.linedefined, 0, ar.name);
 				}
@@ -557,6 +621,11 @@ StackStatData* dumpstack(void* luaState, lua_Debug *var){
 		}
 	
 	StackStatData* stackPtr = g_stack_map->get_stack_data(m_stack_data);
+
+	MYASSERT(require_idx == get_require_vec().size());
+	MYASSERT(searchLua_idx == get_seacher_Lua_vec().size());
+
+	
 
 	return stackPtr;
 
@@ -681,6 +750,115 @@ void* lj_state_newstate_hook(void* a, void* b)
 }
 
 
+__thread int xxx = 0;
+
+class AutoClear
+{public:
+	AutoClear(std::vector<std::string>& vec,  const char* s):m_vec(vec){
+		m_vec.push_back(s);
+	}
+	~AutoClear(){
+		m_vec.pop_back();	
+	}
+
+	char* m_s;	
+
+	std::vector<std::string>& m_vec;
+};
+
+static int _new_ll_require (lua_State *L)
+{
+	
+
+	const char* s = s_luaL_checklstring(L, -1, NULL);
+	AutoClear s1(get_require_vec(), s);
+
+	//printf("_new_ll_require %s %d\n", s, (int) get_require_vec().size());
+	//printf("thread id xxx=%d :%d _new_ll_require %s get_require_vec() size:%d\n",xxx, (int)pthread_self(), s, (int)get_require_vec().size());	
+
+	//get_require_vec().push_back(s);
+
+	int ret =  s_ll_require(L);
+	
+	//printf("end thread id :%d _new_ll_require %s get_require_vec() size:%d\n", (int)pthread_self(), s, (int)get_require_vec().size());	
+
+	return ret;
+}
+
+
+int _new_searcher_Lua (lua_State *L)
+{
+	const char* s = s_luaL_checklstring(L, -1, NULL);
+
+	AutoClear s1(get_seacher_Lua_vec(), s); 
+	//printf("_new_searcher_Lua %s %d\n", s, (int) get_seacher_Lua_vec().size());
+
+	int ret = s_searcher_Lua(L);
+
+	return ret;
+}
+
+
+
+struct RawRunPotectData
+{
+	RawRunPotectData(){
+		m_require_size = get_require_vec().size();
+		m_searchLua_size = get_seacher_Lua_vec().size();
+	}
+	int m_require_size;
+	int m_searchLua_size;
+};
+
+__thread std::vector<RawRunPotectData>* t_pvec = NULL;
+
+std::vector<RawRunPotectData>& get_pcall_vec(){
+	if(NULL == t_pvec)
+		t_pvec = new std::vector<RawRunPotectData>;
+
+	return *t_pvec;
+}
+
+
+int _new_luaD_rawrunprotected (lua_State *L, void* f, void *ud){
+
+
+
+	get_pcall_vec().push_back(RawRunPotectData());
+	
+	int ret = s_luaD_rawrunprotected(L, f, ud);
+
+	if(get_pcall_vec().size() == 0)
+	{
+		printf("FATAL ERROR _new_luaD_rawrunprotected\n");
+		exit(0);
+	}
+
+
+	RawRunPotectData data = get_pcall_vec()[get_pcall_vec().size() - 1];
+
+	get_pcall_vec().pop_back();
+
+	if(data.m_require_size != get_require_vec().size()){
+		
+		MYASSERT(get_require_vec().size() == data.m_require_size + 1)
+		printf("ERROR!!!! require newsize=%d nowsize=%d ERROR str:%s\n", data.m_require_size, (int)get_require_vec().size(), get_require_vec()[get_require_vec().size() - 1].c_str());
+		get_require_vec().resize(data.m_require_size, "");
+	}
+
+
+	if(data.m_searchLua_size != get_seacher_Lua_vec().size())
+	{
+		printf("data.m_searchLua_size=%d, get_seacher_Lua_vec().size=%d\n", data.m_searchLua_size, (int)get_seacher_Lua_vec().size());
+		MYASSERT(data.m_searchLua_size < get_seacher_Lua_vec().size());
+		printf("search lua %d %d\n", data.m_searchLua_size, get_seacher_Lua_vec().size());
+		get_seacher_Lua_vec().resize(data.m_searchLua_size);
+	}
+	
+
+	return ret;
+}
+
 
 
 
@@ -702,9 +880,37 @@ int hook_luajit_mem(lua_State* L){
 	s_lua_tocfunction = (lua_tocfunction_type)(long)(lua_tonumber(L, -5));
 	s_lua_settop = (lua_settop_type)(long)(lua_tonumber(L, -6));
 
+	s_ll_require = (ll_require_type)(long)(lua_tonumber(L, -7));
+	s_old_ll_require = s_ll_require;
+	s_luaL_checklstring = (luaL_checklstring_type)(long)(lua_tonumber(L, -8));	
+
+	s_luaD_rawrunprotected =  (luaD_rawrunprotected_type)(long)(lua_tonumber(L, -9));	
+
+	s_searcher_Lua = (searcher_Lua_type)(long)(lua_tonumber(L, -10));	
+
+	s_old_searcher_Lua = s_searcher_Lua;
+
+	printf("s_ll_require=%p\n", s_ll_require);
+	
+
 	funchook_t *fork_ft = funchook_create();
 	funchook_prepare(fork_ft, (void**)&s_newstate_fun, (void*)lj_state_newstate_hook);
 	funchook_install(fork_ft, 0);
+
+	funchook_t *lr = funchook_create();
+	funchook_prepare(lr, (void**)&s_ll_require, (void*)_new_ll_require);
+	funchook_install(lr, 0);	
+
+
+
+	funchook_t *lr1 = funchook_create();
+	funchook_prepare(lr1, (void**)&s_luaD_rawrunprotected, (void*)_new_luaD_rawrunprotected);
+	funchook_install(lr1, 0);	
+
+
+	funchook_t *lr2 = funchook_create();
+	funchook_prepare(lr2, (void**)&s_searcher_Lua, (void*)_new_searcher_Lua);
+	funchook_install(lr2, 0);
 
 	return 0;
 
