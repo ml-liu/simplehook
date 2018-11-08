@@ -451,6 +451,7 @@ public:
 
 			m_stack_cnt++;			
 		}else{
+			//printf("found in cache*****\n");
 			ret = it->second;
 		}
 		
