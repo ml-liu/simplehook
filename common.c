@@ -76,6 +76,18 @@ __attribute((visibility("default"))) double current_tick(){
 	return ((double)(current_usecond() - s_begin))/1000000;
 }
 
+
+ __attribute((visibility("default"))) unsigned long long program_tick(){
+ 
+	 static unsigned long long s_begin = 0;
+ 
+	 if( 0 == s_begin ){
+		 s_begin = current_usecond();
+	 }
+ 
+	 return (current_usecond() - s_begin);
+ }
+
  __attribute((visibility("default"))) long ffi_get_tid(){
      return (long)pthread_self();
  }
@@ -154,7 +166,7 @@ void* log_thread(void* data){
 		
 	 
 		if( need_direct_write ){
-			fprintf(g_log_file, "%s", str);
+			fputs(str, g_log_file);
 			fflush(g_log_file);
 		}else{
 			cur_pos += sprintf(s_buffer + cur_pos, "%s", str);

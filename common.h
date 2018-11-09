@@ -7,6 +7,7 @@ extern "C" {
 #include <sys/types.h>
 unsigned long long current_usecond();
 __attribute((visibility("default"))) double current_tick();
+__attribute((visibility("default"))) unsigned long long program_tick();
  __attribute((visibility("default"))) long ffi_get_tid();
 void log_init(const char*);
 __attribute((visibility("default")))  void ffi_log_out(char* str);

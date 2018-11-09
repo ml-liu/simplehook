@@ -117,17 +117,22 @@ LuaStateMap* g_luaStateMap = NULL;
 		}\
 		}while(0);
 
-__thread std::vector<std::string>* t_require_vec = NULL;
 
-std::vector<std::string>& get_require_vec()
-{
-	if(t_require_vec == NULL){
-		printf("new vector");
-		t_require_vec = new std::vector<std::string>;
-	}
 
-	return *t_require_vec;
-}
+
+
+ 
+ __thread std::vector<std::string>* t_require_vec = NULL;
+ 
+ std::vector<std::string>& get_require_vec()
+ {
+ 	if(t_require_vec == NULL){
+ 		printf("new vector");
+ 		t_require_vec = new std::vector<std::string>;
+ 	}
+ 
+ 	return *t_require_vec;
+ }
 
 
 
@@ -286,13 +291,17 @@ static void callhook(lua_State *L, lua_Debug *ar){
 	if(ar->event != 0 && ar->event != 1)
 		return;
 
+	int stack_level = 0;
+
 	if(ar->event == 0)
 	{
+		stack_level = data->m_level;
 		data->m_level++;
 	}
 	else
 	{ 
 		data->m_level--;
+		stack_level = data->m_level;
 	}
 
 	if(g_cpuStatIndex == g_need_cpuStateIndex)
@@ -302,18 +311,24 @@ static void callhook(lua_State *L, lua_Debug *ar){
 	int tid  = syscall(SYS_gettid);
 	
 
-	char* buffer = (char*)malloc(100);
+	char* buffer = (char*)malloc(128);
 	buffer[0] = 0;	
 	s_lua_getinfo(L, "flnS", ar);
+
+	unsigned long long tick = program_tick();
 	if( ar->source &&  strcmp(ar->source, "=[C]") == 0)
 	{ 
 		void* cfun = s_lua_tocfunction(L, -1);
-		snprintf(buffer, 98, "[%d][%d][%d][%d]CFUN %p\n",g_cpuStatIndex, tid,ar->event, data->m_level, cfun);
+		snprintf(buffer, 98, "[%d][%d][%d][l=%d][%llu]CFUN %p\n",g_cpuStatIndex, tid,ar->event, stack_level, tick , cfun);
 	}else{
-		snprintf(buffer , 127, "[%d][t=%d][%d][%d]%s(%d) %s\n",g_cpuStatIndex, tid,ar->event, data->m_level, ar->source, ar->linedefined, ar->name);
+		snprintf(buffer , 127, "[%d][%d][%d][l=%d][%llu]%s(%d) %s\n",g_cpuStatIndex, tid,ar->event, stack_level, tick, ar->source, ar->linedefined, ar->name);
 	}
 
-	buffer[99] = 0;
+	
+
+	buffer[127] = 0;
+
+	//printf("%s", buffer);
 
 	
 	
@@ -713,7 +728,7 @@ StackStatData* dumpstack(void* luaState, lua_Debug *var){
 						snprintf(t_luaStack, 98, "CFUN  %p",  cfun);
 					}
 				}else{
-					snprintf(t_luaStack , 127, "%s(%d):%s", t_tmpbuff, ar.linedefined,  ar.name);
+					snprintf(t_luaStack , 127, "%s(%d):%s", t_tmpbuff,(int)ar.linedefined,  ar.name);
 				}
 				s_lua_settop(luaState, -2);
 			
@@ -858,7 +873,7 @@ void* lj_state_newstate_hook(void* a, void* b)
 
 	if(g_working_mode & CPU_PROFILER){
 		g_luaStateMap->add_state(ret);
-		s_lua_sethook(ret, (lua_Hook)callhook, LUA_MASKCALL | LUA_MASKRET, 0);
+		s_lua_sethook(ret, (lua_Hook)callhook,19, 0);
 	}
 
 	return ret;
@@ -918,12 +933,15 @@ int _new_searcher_Lua (lua_State *L)
 
 struct RawRunPotectData
 {
-	RawRunPotectData(){
+	RawRunPotectData(int level = 0){
 		m_require_size = get_require_vec().size();
 		m_searchLua_size = get_seacher_Lua_vec().size();
+		m_level = level;
+		
 	}
 	int m_require_size;
 	int m_searchLua_size;
+	int m_level;
 };
 
 __thread std::vector<RawRunPotectData>* t_pvec = NULL;
@@ -939,8 +957,12 @@ struct RawRunPotectData
 int _new_luaD_rawrunprotected (lua_State *L, void* f, void *ud){
 
 
+	LuaStateCpuData* cpuData = g_luaStateMap->get_state_data(L);
 
-	get_pcall_vec().push_back(RawRunPotectData());
+
+	get_pcall_vec().push_back(RawRunPotectData((cpuData!=NULL ? cpuData->m_level:0)));
+
+	
 	
 	int ret = s_luaD_rawrunprotected(L, f, ud);
 
@@ -969,6 +991,11 @@ int _new_luaD_rawrunprotected (lua_State *L, void* f, void *ud){
 		MYASSERT(data.m_searchLua_size < get_seacher_Lua_vec().size());
 		printf("search lua %d %d\n", data.m_searchLua_size, get_seacher_Lua_vec().size());
 		get_seacher_Lua_vec().resize(data.m_searchLua_size);
+	}
+
+	if(cpuData != NULL&& data.m_level != cpuData->m_level){
+		printf("ERROR HAPPENs...\n");
+		cpuData->m_level = data.m_level;
 	}
 	
 
@@ -1015,20 +1042,21 @@ int hook_lua_mem(lua_State* L){
 	funchook_prepare(fork_ft, (void**)&s_newstate_fun, (void*)lj_state_newstate_hook);
 	funchook_install(fork_ft, 0);
 
-	funchook_t *lr = funchook_create();
-	funchook_prepare(lr, (void**)&s_ll_require, (void*)_new_ll_require);
-	funchook_install(lr, 0);	
+	if(g_working_mode & MEMORY_PROFILER){
+		funchook_t *lr = funchook_create();
+		funchook_prepare(lr, (void**)&s_ll_require, (void*)_new_ll_require);
+		funchook_install(lr, 0);	
+
+		funchook_t *lr2 = funchook_create();
+		funchook_prepare(lr2, (void**)&s_searcher_Lua, (void*)_new_searcher_Lua);
+		funchook_install(lr2, 0);
+	}
 
 
-
+	
 	funchook_t *lr1 = funchook_create();
 	funchook_prepare(lr1, (void**)&s_luaD_rawrunprotected, (void*)_new_luaD_rawrunprotected);
 	funchook_install(lr1, 0);	
-
-
-	funchook_t *lr2 = funchook_create();
-	funchook_prepare(lr2, (void**)&s_searcher_Lua, (void*)_new_searcher_Lua);
-	funchook_install(lr2, 0);
 
 	return 0;
 
