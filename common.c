@@ -31,6 +31,9 @@ pthread_mutex_t g_backtrace_mutex;
 static int  g_has_init = 0;
 
 char log_file_name[255] = {0};
+
+char flushPtr[1];
+
 unsigned long long current_usecond(){
 
 	struct timeval t;
@@ -77,12 +80,30 @@ __attribute((visibility("default"))) double current_tick(){
      return (long)pthread_self();
  }
 
+ 
+ __attribute((visibility("default"))) void ffi_flush_log(){
+	 int ret = 0;
+	 
+	 do{
+		 pthread_mutex_lock(&g_log_mutex);
+		 ret = queue_push_without_alloc(&g_log_queue, flushPtr);
+		 pthread_mutex_unlock(&g_log_mutex); 
+	 
+		 if(ret == 0)
+			 break;
+	 
+		 printf("will sleep!!!!!");
+		 usleep(100);
+	 }while(ret == -1);
+
+ }
+
 
 void* log_thread(void* data){
 
 	g_log_file = fopen(log_file_name,"w");
 
-	#define LOG_BUFFER_CACHE_SIZE (1024*128)
+	#define LOG_BUFFER_CACHE_SIZE (1024*16*1024)
 
 	static char s_buffer[LOG_BUFFER_CACHE_SIZE + LOG_BUFFER_CACHE_SIZE + 10] = {0};
 	int cur_pos = 0;
@@ -105,6 +126,16 @@ void* log_thread(void* data){
 		int need_flush_cache = 0;
 		int need_direct_write = 0;
 
+		if(flushPtr == str){
+			if(cur_pos > 0){
+				fwrite(s_buffer, cur_pos, 1, g_log_file);
+				cur_pos = 0;
+			}
+
+			fflush(g_log_file);
+			continue;
+		}
+
 		if(strlen(str) >= (LOG_BUFFER_CACHE_SIZE)){
 			need_flush_cache = 1;
 			need_direct_write = 1;
@@ -123,10 +154,10 @@ void* log_thread(void* data){
 		
 	 
 		if( need_direct_write ){
-			fprintf(g_log_file, "%s\n", str);
+			fprintf(g_log_file, "%s", str);
 			fflush(g_log_file);
 		}else{
-			cur_pos += sprintf(s_buffer + cur_pos, "%s\n", str);
+			cur_pos += sprintf(s_buffer + cur_pos, "%s", str);
 		}
 
 		free(str);
@@ -227,6 +258,10 @@ __attribute((visibility("default")))  void ffi_log_out(char* str){
 		ret = queue_push_without_alloc(&g_log_queue, str);
 		pthread_mutex_unlock(&g_log_mutex);	
 
+		if(ret == 0)
+			break;
+
+		printf("will sleep!!!!!");
 		usleep(100);
 	}while(ret == -1);
 }

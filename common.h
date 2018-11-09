@@ -10,6 +10,8 @@ __attribute((visibility("default"))) double current_tick();
  __attribute((visibility("default"))) long ffi_get_tid();
 void log_init(const char*);
 __attribute((visibility("default")))  void ffi_log_out(char* str);
+ 
+ __attribute((visibility("default"))) void ffi_flush_log();
 unsigned long long current_msecond();
 __attribute((visibility("default")))  char* ffi_get_sock_info(int fd);
 __attribute((visibility("default")))  char* ffi_get_peer_info(int fd);

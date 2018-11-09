@@ -2,6 +2,10 @@
 #include <sys/socket.h>
 
 #include <unistd.h>
+#define _GNU_SOURCE
+#include <unistd.h>
+#include <sys/syscall.h>
+#include <sys/types.h>
 
 #include <sys/un.h>
 #include <stdlib.h>
@@ -44,8 +48,66 @@ extern "C" {
 #include "lua.h"
 #include "lauxlib.h"
 #include "lualib.h"
+#include "queue.h"
 
 }
+
+
+#define MEMORY_PROFILER 1
+#define CPU_PROFILER    2
+#define SIMPLE_MEMORY_STAT 4
+
+int g_working_mode = 0;
+
+int g_cpuStatIndex = 0;
+int g_need_cpuStateIndex = 0;
+
+
+struct LuaStateCpuData{
+	LuaStateCpuData():m_level(0){};
+	int m_level;
+};
+
+class LuaStateMap
+{
+public:
+	LuaStateMap()
+	{
+		pthread_mutex_init(&m_mutex, NULL);
+	}
+
+	void add_state(void* L)
+	{
+		pthread_mutex_lock(&m_mutex);	
+		m_map[L] = new LuaStateCpuData;
+		pthread_mutex_unlock(&m_mutex);		
+	}
+
+	
+	LuaStateCpuData* get_state_data(void* L){
+		
+		LuaStateCpuData* ret = NULL;
+		
+		pthread_mutex_lock(&m_mutex);	
+
+		std::map<void *, LuaStateCpuData*>::iterator it = m_map.find(L);
+		
+		if(it != m_map.end())
+			ret = it->second;
+			
+		pthread_mutex_unlock(&m_mutex);	
+
+		return ret;
+
+	}
+
+private:
+	pthread_mutex_t m_mutex;
+	std::map<void *, LuaStateCpuData*> m_map;
+	
+};
+
+LuaStateMap* g_luaStateMap = NULL;
 
 
 #define MYASSERT(a) do{\
@@ -212,12 +274,54 @@ unsigned long long g_total_free_lua_mem = 0;
 
 
 static void callhook(lua_State *L, lua_Debug *ar){
-	if(NULL ==  t_luainfo){
-		t_luainfo = (char*)malloc(128);
+
+	
+
+	LuaStateCpuData* data = g_luaStateMap->get_state_data(L);
+
+	// 协程暂不支持
+	if(NULL == data)
+		return;
+
+	if(ar->event != 0 && ar->event != 1)
+		return;
+
+	if(ar->event == 0)
+	{
+		data->m_level++;
 	}
-	s_lua_getinfo(L, "lnS", ar);
-	snprintf(t_luainfo, 127, "%s:%d:%s", ar->source, ar->linedefined, ar->name); 
-	t_luainfo[127] = '\0';
+	else
+	{ 
+		data->m_level--;
+	}
+
+	if(g_cpuStatIndex == g_need_cpuStateIndex)
+		return;
+
+
+	int tid  = syscall(SYS_gettid);
+	
+
+	char* buffer = (char*)malloc(100);
+	buffer[0] = 0;	
+	s_lua_getinfo(L, "flnS", ar);
+	if( ar->source &&  strcmp(ar->source, "=[C]") == 0)
+	{ 
+		void* cfun = s_lua_tocfunction(L, -1);
+		snprintf(buffer, 98, "[%d][%d][%d][%d]CFUN %p\n",g_cpuStatIndex, tid,ar->event, data->m_level, cfun);
+	}else{
+		snprintf(buffer , 127, "[%d][t=%d][%d][%d]%s(%d) %s\n",g_cpuStatIndex, tid,ar->event, data->m_level, ar->source, ar->linedefined, ar->name);
+	}
+
+	buffer[99] = 0;
+
+	
+	
+	s_lua_settop(L, -2);
+
+	ffi_log_out(buffer);
+	
+
 }
 char* g_copy_string(const char* str) {
      
@@ -609,7 +713,7 @@ StackStatData* dumpstack(void* luaState, lua_Debug *var){
 						snprintf(t_luaStack, 98, "CFUN  %p",  cfun);
 					}
 				}else{
-					snprintf(t_luaStack , 127, "%s(%d):%s", t_tmpbuff, ar.linedefined, 0, ar.name);
+					snprintf(t_luaStack , 127, "%s(%d):%s", t_tmpbuff, ar.linedefined,  ar.name);
 				}
 				s_lua_settop(luaState, -2);
 			
@@ -664,7 +768,7 @@ void *lj_alloc_f_hook(void *msp, void *ptr, size_t osize, size_t nsize){
 	}
 
 
-	if(ptr != NULL){
+	if(ptr != NULL && (g_working_mode & MEMORY_PROFILER) ){
 		StackStatData* s = g_ptrinfo_map->remove_ptr(ptr);
 		if(NULL != s){
 			s->m_free_cnt++;
@@ -695,7 +799,7 @@ void *lj_alloc_f_hook(void *msp, void *ptr, size_t osize, size_t nsize){
 
 	LuaStateMemState& d = g_lua_state_arr[state_idx];
 	
-	if(newPtr != NULL && d.m_state_ptr != NULL)
+	if((g_working_mode & MEMORY_PROFILER) && newPtr != NULL && d.m_state_ptr != NULL)
 	{
 		
 		lua_Debug var;
@@ -726,15 +830,23 @@ void* lj_state_newstate_hook(void* a, void* b)
 
 	s_mem_hook_addr = (lj_alloc_f_hook_type)a;
 
-	int cur_idx = __sync_fetch_and_add(&g_lua_lua_state_idx, 1);
 
-	if(cur_idx >= MAX_LUA_STATE_COUNT){
-		exit(-1);
+
+
+
+	void* ret = NULL;
+	if( (g_working_mode & MEMORY_PROFILER) || (g_working_mode & SIMPLE_MEMORY_STAT) ){
+		int cur_idx = __sync_fetch_and_add(&g_lua_lua_state_idx, 1);
+		if(cur_idx >= MAX_LUA_STATE_COUNT){
+			exit(-1);
+		}		
+	    ret = 	s_newstate_fun((void*)lj_alloc_f_hook, (void*)cur_idx);
+		g_lua_state_arr[cur_idx].m_state_ptr = ret;
+	}else{
+		ret = s_newstate_fun(a, b );
 	}
-	
-	void* ret = 	s_newstate_fun((void*)lj_alloc_f_hook, (void*)cur_idx);
 
-	g_lua_state_arr[cur_idx].m_state_ptr = ret;
+	
 
 	//t_luaStateMap[b] = ret;
 
@@ -744,7 +856,10 @@ void* lj_state_newstate_hook(void* a, void* b)
 	
 	ffi_log_out(logbuf);
 
-	//s_lua_sethook(ret, (lua_Hook)callhook, LUA_MASKCALL | LUA_MASKRET, 0);
+	if(g_working_mode & CPU_PROFILER){
+		g_luaStateMap->add_state(ret);
+		s_lua_sethook(ret, (lua_Hook)callhook, LUA_MASKCALL | LUA_MASKRET, 0);
+	}
 
 	return ret;
 	
@@ -865,7 +980,7 @@ int _new_luaD_rawrunprotected (lua_State *L, void* f, void *ud){
 
 
 
-int hook_luajit_mem(lua_State* L){
+int hook_lua_mem(lua_State* L){
 
 	long new_fun_ptr  = (long)(lua_tonumber(L, -4));
 	long getstack_ptr = (long)(lua_tonumber(L, -3));
@@ -889,9 +1004,11 @@ int hook_luajit_mem(lua_State* L){
 
 	s_searcher_Lua = (searcher_Lua_type)(long)(lua_tonumber(L, -10));	
 
+	g_working_mode = (int)(lua_tonumber(L, -11));
+
 	s_old_searcher_Lua = s_searcher_Lua;
 
-	printf("s_ll_require=%p\n", s_ll_require);
+	printf("g_working_mode=%d (memory:0  cpu:1)\n", g_working_mode);
 	
 
 	funchook_t *fork_ft = funchook_create();
@@ -990,9 +1107,15 @@ static char* ctl_thread_handle(char* cmd){
 		fclose(fplog);
 		fclose(fpstack);
 
-	}else if(strncmp(cmd, "start", 5) == 0){
-		g_has_started = 1;
-		sprintf(res, "g_has_started=%d", g_has_started);
+	}else if(strncmp(cmd, "startcpu", 8) == 0){
+		g_need_cpuStateIndex++;
+		sprintf(res, "g_need_cpuStateIndex=%d", g_need_cpuStateIndex);
+		
+	}else if(strncmp(cmd, "stopcpu", 7) == 0){
+		g_cpuStatIndex = g_need_cpuStateIndex;
+		sprintf(res, "g_cpuStatIndex=%d", g_cpuStatIndex);
+		ffi_flush_log();
+		
 	}else{
 		sprintf(res, "done!!!");
 	}
@@ -1014,12 +1137,15 @@ int  get_so_load_base(lua_State* L)
 }
 
 
+
 void __attribute__((constructor)) Init()
 {
 	pthread_t id_1;
 	//signal(SIGTRAP, SIG_IGN);
 	funchook_t *fork_ft = funchook_create();
 	log_init(NULL);
+
+	g_luaStateMap = new LuaStateMap;
 
 	g_ptrinfo_map = new PtrInfoMap;
     g_lua_fun_cache = new LuaFunctionCache;
@@ -1043,7 +1169,7 @@ void __attribute__((constructor)) Init()
 	
 	luaL_openlibs(L);	
  	lua_register(L, "get_so_load_base", get_so_load_base);
-	lua_register(L, "hook_lua_mem", hook_luajit_mem);
+	lua_register(L, "hook_lua_mem", hook_lua_mem);
 	luaL_dofile(L, "hook.lua");
 
 	init_ctl_thread("/tmp/luameme.sock", ctl_thread_handle);
