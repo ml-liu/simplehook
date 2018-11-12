@@ -27,7 +27,7 @@ echo "lua_pcallk=0x$lua_pcallk"
 
 echo "if(hook_lua_mem)"
 echo "then"
-echo "    hook_lua_mem(lua_pcallk + soaddr, 1, searcher_Lua + soaddr, luaD_rawrunprotected + soaddr, luaL_checklstring+soaddr, ll_require+soaddr, lua_settop + soaddr, lua_tocfunction + soaddr,lua_newstate + soaddr,lua_getstack + soaddr,lua_getinfo + soaddr, lua_sethook + soaddr)"
+echo "    hook_lua_mem(lua_pcallk + soaddr, 2, searcher_Lua + soaddr, luaD_rawrunprotected + soaddr, luaL_checklstring+soaddr, ll_require+soaddr, lua_settop + soaddr, lua_tocfunction + soaddr,lua_newstate + soaddr,lua_getstack + soaddr,lua_getinfo + soaddr, lua_sethook + soaddr)"
 echo "end"
 
 
