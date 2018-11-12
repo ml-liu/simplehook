@@ -838,7 +838,7 @@ def main(pid):
                 fg.Alloc(1, int(s))
                 continue
                 
-    with open("framegraph.%s.html" % (pid, ), "wb") as fp:
+    with open("luamem.%s.html" % (pid, ), "wb") as fp:
         fp.write(fg.Print())
         
 if __name__ == "__main__":

@@ -13,7 +13,7 @@ class Ctx:
     self.fg = FrameGraph("us")
     self.ts = []
   
-ptn_line = Matcher('\[L=.*\]\[\d\]\[\d+\]\[(?P<dEvent>\d)\]\[l=\d+\]\[(?P<dTS>\d+)\](?P<sName>.*)');
+ptn_line = Matcher('\[L=.*\]\[\d\]\[\d+\]\[(?P<dEvent>\d)\]\[l=(?P<level>\d+)\]\[(?P<dTS>\d+)\](?P<sName>.*)');
 with open(sys.argv[1], 'rb') as fp:
   #fg = FrameGraph("us")
   current_level = -1
@@ -23,13 +23,15 @@ with open(sys.argv[1], 'rb') as fp:
   cur_ls = "eeeeeee"
   func[cur_ls] = Ctx()
   cfunmap = {}
+  current_line = 0
   for line in fp:
+    current_line = current_line+1
     line = line.strip()
     o = ptn_line.match(line)
     if not o:
       print "line not match: `%r`" % line
       continue
-
+ 
     cfun = o.sName.split()
     if len(cfun) == 2 and cfun[0] == 'CFUN':
         if cfun[1] in cfunmap:
@@ -44,16 +46,23 @@ with open(sys.argv[1], 'rb') as fp:
             funname = outname
         
         o.sName = funname
-      
+ 
+
     if o.dEvent == 0:
-      if func[cur_ls].ts: func[cur_ls].fg.Update(o.dTS - func[cur_ls].ts[-1])
+      if func[cur_ls].ts: 
+        func[cur_ls].fg.Update(o.dTS - func[cur_ls].ts[-1]["nowts"])
       func[cur_ls].fg.Enter(o.sName)
-      func[cur_ls].ts.append(o.dTS)
+      func[cur_ls].ts.append({"nowts":o.dTS, "name":o.sName})
     else:
-      func[cur_ls].fg.Update(o.dTS - func[cur_ls].ts[-1])
+      func[cur_ls].fg.Update(o.dTS - func[cur_ls].ts[-1]["nowts"])
       func[cur_ls].fg.Leave()
+      
+      if o.level == 0 and func[cur_ls].ts[-1]["name"] != o.sName:
+        print "ERROR fun name not equal %s-%s current_line:%d" %(o.sName, func[cur_ls].ts[-1]["name"], current_line)
+      
       func[cur_ls].ts.pop()
-      if func[cur_ls].ts: func[cur_ls].ts[-1] = o.dTS
+      if func[cur_ls].ts: 
+        func[cur_ls].ts[-1]["nowts"] = o.dTS
   
   for _ls in func:
     with open("luacpuhot.%s.html" % sys.argv[1], "wb") as fp:
