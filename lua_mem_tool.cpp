@@ -1115,9 +1115,6 @@ int hook_lua_mem(lua_State* L){
 
 static char* ctl_thread_handle(char* cmd){
 
-	char* buff = (char*)malloc(1000);
-	strcpy(buff, cmd);
-	ffi_log_out(buff);
 	int i = 0;
 
 	int cur_pos = 0;
@@ -1190,14 +1187,14 @@ static char* ctl_thread_handle(char* cmd){
 		g_nowStatIndex = g_cpuStatIndex;
 
 		char* tmplog = (char*)malloc(200);
-		sprintf(tmplog, "start nowidx %d tick %llu\n", g_nowStatIndex, program_tick());
+		sprintf(tmplog, "\nstart nowidx %d tick %llu\n", g_nowStatIndex, program_tick());
 		ffi_log_out(tmplog);
 		
 	}else if(strncmp(cmd, "stopcpu", 7) == 0){
 		g_cpuStatIndex = g_need_cpuStateIndex;
 		sprintf(res, "g_cpuStatIndex=%d", g_cpuStatIndex);
 		char* tmplog = (char*)malloc(200);
-		sprintf(tmplog, "stop nowidx %d tick %llu\n", g_nowStatIndex, program_tick());
+		sprintf(tmplog, "\nstop nowidx %d tick %llu\n", g_nowStatIndex, program_tick());
 		ffi_log_out(tmplog);
 
 		
