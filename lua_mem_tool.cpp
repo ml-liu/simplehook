@@ -2,7 +2,9 @@
 #include <sys/socket.h>
 
 #include <unistd.h>
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
@@ -53,6 +55,20 @@ extern "C" {
 }
 
 
+#define MAX_DUMP_COUNT (1024)
+
+__thread int* t_can_dump = NULL;
+
+int* get_can_dump_array(){
+	if(t_can_dump == NULL){
+		t_can_dump = new int[MAX_DUMP_COUNT];
+		memset(t_can_dump, 0, sizeof(int) * MAX_DUMP_COUNT);
+	}
+
+	return t_can_dump;
+}
+
+
 #define MEMORY_PROFILER 1
 #define CPU_PROFILER    2
 #define SIMPLE_MEMORY_STAT 4
@@ -61,6 +77,7 @@ int g_working_mode = 0;
 
 int g_cpuStatIndex = 0;
 int g_need_cpuStateIndex = 0;
+int g_nowStatIndex = 0;
 
 
 struct LuaStateCpuData{
@@ -73,32 +90,27 @@ class LuaStateMap
 public:
 	LuaStateMap()
 	{
-		pthread_mutex_init(&m_mutex, NULL);
 	}
 
 	void add_state(void* L)
 	{
-		pthread_mutex_lock(&m_mutex);	
-		m_map[L] = new LuaStateCpuData;
-		pthread_mutex_unlock(&m_mutex);		
+		m_map[L] = new LuaStateCpuData;		
 	}
 
 	
 	LuaStateCpuData* get_state_data(void* L){
-		
-		LuaStateCpuData* ret = NULL;
-		
-		pthread_mutex_lock(&m_mutex);	
-
 		std::map<void *, LuaStateCpuData*>::iterator it = m_map.find(L);
-		
-		if(it != m_map.end())
+
+		LuaStateCpuData* ret = NULL;
+
+		if(it != m_map.end()){
 			ret = it->second;
-			
-		pthread_mutex_unlock(&m_mutex);	
-
+		}else{
+			ret = new LuaStateCpuData;
+			m_map[L] = ret ;
+		}
+		
 		return ret;
-
 	}
 
 private:
@@ -107,7 +119,16 @@ private:
 	
 };
 
-LuaStateMap* g_luaStateMap = NULL;
+__thread LuaStateMap* t_luaStateMap = NULL;
+
+LuaStateMap* get_thread_luastate_map(){
+	if(t_luaStateMap == NULL)
+		t_luaStateMap = new LuaStateMap;
+
+	return t_luaStateMap;
+}
+
+
 
 
 #define MYASSERT(a) do{\
@@ -218,7 +239,6 @@ int s_need_dump_idx = 0;
 
 
 __thread int t_need_dump_idx = 0;
-std::map<void*, void*> t_luaStateMap;
 
 
 /************************** 
@@ -282,7 +302,7 @@ static void callhook(lua_State *L, lua_Debug *ar){
 
 	
 
-	LuaStateCpuData* data = g_luaStateMap->get_state_data(L);
+	LuaStateCpuData* data = get_thread_luastate_map()->get_state_data(L);
 
 	// 协程暂不支持
 	if(NULL == data)
@@ -304,14 +324,17 @@ static void callhook(lua_State *L, lua_Debug *ar){
 		stack_level = data->m_level;
 	}
 
-	if(g_cpuStatIndex == g_need_cpuStateIndex)
+	
+
+	if(!get_can_dump_array()[g_nowStatIndex]){
 		return;
+	}
 
 
 	int tid  = syscall(SYS_gettid);
 	
 
-	char* buffer = (char*)malloc(128);
+	char* buffer = (char*)malloc(256);
 	buffer[0] = 0;	
 	s_lua_getinfo(L, "flnS", ar);
 
@@ -319,19 +342,15 @@ static void callhook(lua_State *L, lua_Debug *ar){
 	if( ar->source &&  strcmp(ar->source, "=[C]") == 0)
 	{ 
 		void* cfun = s_lua_tocfunction(L, -1);
-		snprintf(buffer, 98, "[%d][%d][%d][l=%d][%llu]CFUN %p\n",g_cpuStatIndex, tid,ar->event, stack_level, tick , cfun);
+		snprintf(buffer, 255, "\n[L=%p][%d][%d][%d][l=%d][%llu]CFUN %p",L, g_cpuStatIndex, tid,ar->event, stack_level, tick , cfun);
 	}else{
-		snprintf(buffer , 127, "[%d][%d][%d][l=%d][%llu]%s(%d) %s\n",g_cpuStatIndex, tid,ar->event, stack_level, tick, ar->source, ar->linedefined, ar->name);
+		snprintf(buffer , 255, "\n[L=%p][%d][%d][%d][l=%d][%llu]%s(%d) %s",L, g_cpuStatIndex, tid,ar->event, stack_level, tick, ar->source, ar->linedefined, ar->name);
 	}
 
 	
 
-	buffer[127] = 0;
+	buffer[255] = 0;
 
-	//printf("%s", buffer);
-
-	
-	
 	s_lua_settop(L, -2);
 
 	ffi_log_out(buffer);
@@ -697,10 +716,10 @@ StackStatData* dumpstack(void* luaState, lua_Debug *var){
 	int searchLua_idx = 0;
 
 	
-	while(luaState != NULL && s_lua_getstack(luaState, level, &ar) == 1)
+	while(luaState != NULL && s_lua_getstack((lua_State*)luaState, level, &ar) == 1)
 		{
 				t_luaStack[0] = 0;	
-				s_lua_getinfo(luaState, "flnS", &ar);
+				s_lua_getinfo((lua_State*)luaState, "flnS", &ar);
 
 				if(ar.source != NULL)
 				     snprintf(t_tmpbuff,100, "%s" ,ar.source);
@@ -725,7 +744,7 @@ StackStatData* dumpstack(void* luaState, lua_Debug *var){
 						searchLua_idx ++;
 					}
 					else{
-						snprintf(t_luaStack, 98, "CFUN  %p",  cfun);
+						snprintf(t_luaStack, 98, "CFUN %p",  cfun);
 					}
 				}else{
 					snprintf(t_luaStack , 127, "%s(%d):%s", t_tmpbuff,(int)ar.linedefined,  ar.name);
@@ -760,7 +779,7 @@ void *lj_alloc_f_hook(void *msp, void *ptr, size_t osize, size_t nsize){
 
 	void* newPtr = NULL;
 
-	int state_idx = (int)msp;
+	int state_idx = (int)(long long)msp;
 
 
 	if(g_lua_state_arr[state_idx].m_tid == 0){
@@ -861,18 +880,9 @@ void* lj_state_newstate_hook(void* a, void* b)
 		ret = s_newstate_fun(a, b );
 	}
 
-	
 
-	//t_luaStateMap[b] = ret;
-
-	char* logbuf = (char*)malloc(100);
-	
-	sprintf(logbuf, "msp:%p, luastate is %p", b, ret);
-	
-	ffi_log_out(logbuf);
 
 	if(g_working_mode & CPU_PROFILER){
-		g_luaStateMap->add_state(ret);
 		s_lua_sethook(ret, (lua_Hook)callhook,19, 0);
 	}
 
@@ -953,24 +963,51 @@ struct RawRunPotectData
 	return *t_pvec;
 }
 
+__thread int t_lua_pcallk_depth = 0;
+
+typedef int (*type_lua_pcallk) (void *L, int nargs, int nresults, int errfunc,void* ctx, void* k);
+
+type_lua_pcallk real_lua_pcallk = NULL;
+
+int new_lua_pcallk (void *L, int nargs, int nresults, int errfunc,void* ctx, void* k)
+{
+	
+	unsigned long long s = current_usecond();
+
+	int depth = t_lua_pcallk_depth;
+
+	if(depth != get_pcall_vec().size()){
+		printf("depth=%d, vecsize=%d\n", depth, (int)get_pcall_vec().size());
+	}
+	if(depth == 0){
+		int x = get_can_dump_array()[g_nowStatIndex];
+		get_can_dump_array()[g_nowStatIndex] = (g_cpuStatIndex == g_need_cpuStateIndex ? 0 : 1);
+		if(x != get_can_dump_array()[g_nowStatIndex])
+			ffi_flush_log();
+	}
+
+	t_lua_pcallk_depth++;
+	int ret =  real_lua_pcallk(L, nargs, nresults, errfunc, ctx, k);
+	t_lua_pcallk_depth--;
+	return ret;
+}
+
 
 int _new_luaD_rawrunprotected (lua_State *L, void* f, void *ud){
 
 
-	LuaStateCpuData* cpuData = g_luaStateMap->get_state_data(L);
+	LuaStateCpuData* cpuData = get_thread_luastate_map()->get_state_data(L);
 
 
 	get_pcall_vec().push_back(RawRunPotectData((cpuData!=NULL ? cpuData->m_level:0)));
 
-	
+
+	static int s_lastdumpIdx = 0;
 	
 	int ret = s_luaD_rawrunprotected(L, f, ud);
 
-	if(get_pcall_vec().size() == 0)
-	{
-		printf("FATAL ERROR _new_luaD_rawrunprotected\n");
-		exit(0);
-	}
+	 
+
 
 
 	RawRunPotectData data = get_pcall_vec()[get_pcall_vec().size() - 1];
@@ -1035,6 +1072,8 @@ int hook_lua_mem(lua_State* L){
 
 	s_old_searcher_Lua = s_searcher_Lua;
 
+	real_lua_pcallk = (type_lua_pcallk)(long)(lua_tonumber(L, -12));
+
 	printf("g_working_mode=%d (memory:0  cpu:1)\n", g_working_mode);
 	
 
@@ -1054,9 +1093,17 @@ int hook_lua_mem(lua_State* L){
 
 
 	
+	
+
+	
 	funchook_t *lr1 = funchook_create();
 	funchook_prepare(lr1, (void**)&s_luaD_rawrunprotected, (void*)_new_luaD_rawrunprotected);
 	funchook_install(lr1, 0);	
+
+	
+	funchook_t *lr3 = funchook_create();
+	funchook_prepare(lr3, (void**)&real_lua_pcallk, (void*)new_lua_pcallk);
+	funchook_install(lr3, 0);	
 
 	return 0;
 
@@ -1138,11 +1185,19 @@ static char* ctl_thread_handle(char* cmd){
 	}else if(strncmp(cmd, "startcpu", 8) == 0){
 		g_need_cpuStateIndex++;
 		sprintf(res, "g_need_cpuStateIndex=%d", g_need_cpuStateIndex);
+		g_nowStatIndex = g_cpuStatIndex;
+
+		char* tmplog = (char*)malloc(200);
+		sprintf(tmplog, "start nowidx %d tick %llu\n", g_nowStatIndex, program_tick());
+		ffi_log_out(tmplog);
 		
 	}else if(strncmp(cmd, "stopcpu", 7) == 0){
 		g_cpuStatIndex = g_need_cpuStateIndex;
 		sprintf(res, "g_cpuStatIndex=%d", g_cpuStatIndex);
-		ffi_flush_log();
+		char* tmplog = (char*)malloc(200);
+		sprintf(tmplog, "stop nowidx %d tick %llu\n", g_nowStatIndex, program_tick());
+		ffi_log_out(tmplog);
+
 		
 	}else{
 		sprintf(res, "done!!!");
@@ -1173,7 +1228,6 @@ void __attribute__((constructor)) Init()
 	funchook_t *fork_ft = funchook_create();
 	log_init(NULL);
 
-	g_luaStateMap = new LuaStateMap;
 
 	g_ptrinfo_map = new PtrInfoMap;
     g_lua_fun_cache = new LuaFunctionCache;
