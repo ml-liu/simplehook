@@ -344,9 +344,9 @@ static void callhook(lua_State *L, lua_Debug *ar){
 	if( ar->source &&  strcmp(ar->source, "=[C]") == 0)
 	{ 
 		void* cfun = s_lua_tocfunction(L, -1);
-		snprintf(buffer, 255, "\n[L=%p][%d][%d][%d][l=%d][%llu]CFUN %p",L, g_cpuStatIndex, tid,ar->event, stack_level, tick , cfun);
+		snprintf(buffer, 255, "\n[L=%p][%d][%d][%d][l=%d][%llu]CFUN %p",L, g_nowStatIndex, tid,ar->event, stack_level, tick , cfun);
 	}else{
-		snprintf(buffer , 255, "\n[L=%p][%d][%d][%d][l=%d][%llu]%s(%d) %s",L, g_cpuStatIndex, tid,ar->event, stack_level, tick, ar->source, ar->linedefined, ar->name);
+		snprintf(buffer , 255, "\n[L=%p][%d][%d][%d][l=%d][%llu]%s(%d) %s",L, g_nowStatIndex, tid,ar->event, stack_level, tick, ar->source, ar->linedefined, ar->name);
 	}
 
 	
