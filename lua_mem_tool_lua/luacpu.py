@@ -51,7 +51,7 @@ with open(sys.argv[1], 'rb') as fp:
             o.sName = funname
  
     if o.sName not in funcost:
-      funcost[o.sName] = {"cnt":0, "cost":0}
+      funcost[o.sName] = {"cnt":0, "cost":0, "total":0}
 
     if o.dEvent == 0:    
       if func[cur_ls].ts: 
@@ -59,7 +59,7 @@ with open(sys.argv[1], 'rb') as fp:
         funcost[func[cur_ls].ts[-1]["name"]]["cost"] = funcost[func[cur_ls].ts[-1]["name"]]["cost"] + (o.dTS - func[cur_ls].ts[-1]["nowts"])
         
       func[cur_ls].fg.Enter(o.sName)
-      func[cur_ls].ts.append({"nowts":o.dTS, "name":o.sName})
+      func[cur_ls].ts.append({"nowts":o.dTS, "name":o.sName,"enterts":o.dTS})
     else:
       func[cur_ls].fg.Update(o.dTS - func[cur_ls].ts[-1]["nowts"])
       func[cur_ls].fg.Leave()
@@ -70,6 +70,7 @@ with open(sys.argv[1], 'rb') as fp:
       curFName = func[cur_ls].ts[-1]["name"]
       funcost[curFName]["cnt"] = funcost[curFName]["cnt"] + 1
       funcost[curFName]["cost"] =  funcost[curFName]["cost"] + (o.dTS - func[cur_ls].ts[-1]["nowts"])
+      funcost[curFName]["total"] = funcost[curFName]["total"] + (o.dTS - func[cur_ls].ts[-1]["enterts"])
       
       func[cur_ls].ts.pop()
       if func[cur_ls].ts: 
@@ -81,7 +82,7 @@ with open(sys.argv[1], 'rb') as fp:
       
   for f in funcost:
     with open("luacpuhot.stat.%s.txt" % sys.argv[1],"wb") as fp:
-      fp.write("cost cnt name\n")
+      fp.write("selfcost\tcnt\ttotalcost\tname\n")
       for i in funcost:
-        fp.write("%d %d %s\n" % (funcost[i]["cost"],funcost[i]["cnt"],i))
+        fp.write("%d\t%d\t%d\t%s\n" % (funcost[i]["cost"],funcost[i]["cnt"],funcost[i]["total"],i))
         
